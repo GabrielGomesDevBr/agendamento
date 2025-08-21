@@ -62,14 +62,45 @@ agendamento_clinica/
 - **disponibilidades** - Horários disponíveis
 - **tipos_terapia** - Tipos de terapia oferecidos
 
-## 🔐 Autenticação e Segurança
+## 🔐 Segurança e Boas Práticas
 
+### 🛡️ Recursos de Segurança Implementados:
 - **JWT Tokens** com expiração de 24h
-- **Senhas hasheadas** com bcryptjs (salt 10)
+- **Senhas hasheadas** com bcryptjs (salt 12)
 - **Rate limiting** (100 req/15min por IP)
 - **Helmet** para headers de segurança
-- **CORS** configurado
-- **Validação** rigorosa de dados de entrada
+- **CORS** configurado adequadamente
+- **Validação rigorosa** de dados de entrada (Joi)
+- **Prevenção SQL Injection** com queries parametrizadas
+- **Arquivos sensíveis** protegidos (.gitignore)
+
+### 🚨 Checklist de Segurança Obrigatório:
+
+#### Antes de Deploy em Produção:
+- [ ] Configurar variáveis de ambiente seguras no servidor
+- [ ] Gerar nova `JWT_SECRET` robusta (64+ caracteres)
+- [ ] Alterar TODAS as senhas padrão
+- [ ] Configurar HTTPS/SSL
+- [ ] Definir `NODE_ENV=production`
+- [ ] Configurar CORS apenas para domínios autorizados
+- [ ] Implementar logs de auditoria
+- [ ] Configurar backup automático do banco
+- [ ] Monitorar tentativas de acesso suspeitas
+
+#### Configurações de Ambiente Seguro:
+```bash
+# .env de PRODUÇÃO (exemplo)
+NODE_ENV=production
+JWT_SECRET=sua_chave_super_secreta_64_chars_min
+DB_PASSWORD=senha_forte_unica_bd
+FRONTEND_URL=https://seu-dominio.com
+```
+
+### 🔒 Proteções Anti SQL Injection:
+- Todas as queries usam **prepared statements**
+- Validação de entrada com **Joi schemas**
+- Sanitização automática de dados
+- Parametrização de consultas PostgreSQL
 
 ## 🚀 Como Executar
 
@@ -88,9 +119,20 @@ createdb agendamento_db
 
 ### 3. Configurar Ambiente
 ```bash
-# Editar .env com suas credenciais
-DB_PASSWORD=sua_senha_postgresql
+# 1. Copiar arquivo de exemplo
+cp .env.example .env
+
+# 2. Editar .env com suas credenciais REAIS
+# IMPORTANTE: Use senhas fortes e chaves JWT únicas!
+# Gerar chave JWT segura:
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
+
+**⚠️ CRÍTICO - SEGURANÇA:**
+- ✅ NUNCA commitze o arquivo `.env` 
+- ✅ Use senhas FORTES e ÚNICAS
+- ✅ Configure `JWT_SECRET` com chave robusta
+- ✅ Em produção, use variáveis de ambiente do servidor
 
 ### 4. Instalar e Executar
 ```bash
@@ -112,19 +154,22 @@ npm start
 - **API**: http://localhost:3000/api
 - **Health Check**: http://localhost:3000/api/health
 
-## 👤 Credenciais de Acesso
+## 👤 Credenciais de Desenvolvimento
 
-### Supervisores:
-- **mariana.costa@clinica.com** / senha: `123456`
-- **roberto.silva@clinica.com** / senha: `123456`
+**⚠️ APENAS PARA AMBIENTE DE DESENVOLVIMENTO:**
 
-### Terapeutas:
-- **ana.sousa@clinica.com** / senha: `123456`
-- **carlos.lima@clinica.com** / senha: `123456`
-- **marina.santos@clinica.com** / senha: `123456`
-- **joao.oliveira@clinica.com** / senha: `123456`
-- **fernanda.costa@clinica.com** / senha: `123456`
-- **beatriz.almeida@clinica.com** / senha: `123456`
+### Usuários de Teste:
+- **Supervisores:** mariana.costa@clinica.com, roberto.silva@clinica.com
+- **Terapeutas:** ana.sousa@clinica.com, carlos.lima@clinica.com (e outros)
+
+### Senha Temporária:
+A senha padrão é definida pela variável `DEFAULT_SEED_PASSWORD` no `.env` ou `TempPassword123!`
+
+**🚨 AVISO DE SEGURANÇA:**
+- ✅ Essas credenciais são APENAS para desenvolvimento/demonstração
+- ✅ ALTERE IMEDIATAMENTE todas as senhas após primeiro login
+- ✅ NUNCA use essas credenciais em produção
+- ✅ Configure senhas únicas para cada usuário em ambiente real
 
 ## 🔧 Scripts NPM
 

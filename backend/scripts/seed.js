@@ -34,9 +34,11 @@ async function seedDatabase() {
 
     // 2. Seed dos supervisores
     const supervisores = readJsonFile('supervisores.json');
+    const defaultPassword = process.env.DEFAULT_SEED_PASSWORD || 'TempPassword123!'; // Senha temporária mais segura
+    
     if (supervisores.length > 0) {
       for (const supervisor of supervisores) {
-        const senhaHash = await bcrypt.hash('123456', 10); // Senha padrão para MVP
+        const senhaHash = await bcrypt.hash(defaultPassword, 12); // Salt mais forte
         await pool.query(
           'INSERT INTO supervisores (nome, email, senha_hash, telefone, avatar, status) VALUES ($1, $2, $3, $4, $5, $6)',
           [
@@ -49,14 +51,15 @@ async function seedDatabase() {
           ]
         );
       }
-      console.log(`✅ ${supervisores.length} supervisores inseridos (senha padrão: 123456)`);
+      console.log(`✅ ${supervisores.length} supervisores inseridos`);
+      console.log(`⚠️  AVISO: Altere as senhas padrão após o primeiro login!`);
     }
 
     // 3. Seed dos terapeutas
     const terapeutas = readJsonFile('terapeutas.json');
     if (terapeutas.length > 0) {
       for (const terapeuta of terapeutas) {
-        const senhaHash = await bcrypt.hash('123456', 10); // Senha padrão para MVP
+        const senhaHash = await bcrypt.hash(defaultPassword, 12); // Salt mais forte
         await pool.query(
           'INSERT INTO terapeutas (nome, email, senha_hash, telefone, crf, especialidades, avatar, horario_trabalho, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
           [
@@ -72,7 +75,7 @@ async function seedDatabase() {
           ]
         );
       }
-      console.log(`✅ ${terapeutas.length} terapeutas inseridos (senha padrão: 123456)`);
+      console.log(`✅ ${terapeutas.length} terapeutas inseridos`);
     }
 
     // 4. Seed dos pacientes
@@ -177,7 +180,11 @@ async function seedDatabase() {
     
     console.log('🎉 Seed concluído com sucesso!');
     console.log('');
-    console.log('📝 Credenciais de acesso (senha padrão para todos: 123456):');
+    console.log('⚠️  IMPORTANTE - SEGURANÇA:');
+    console.log(`📝 Senha temporária para TODOS os usuários: ${defaultPassword}`);
+    console.log('🔐 ALTERE IMEDIATAMENTE as senhas após o primeiro login!');
+    console.log('🚫 NÃO use essas credenciais em produção!');
+    console.log('');
     
     const { rows: allSupervisores } = await pool.query('SELECT nome, email FROM supervisores');
     const { rows: allTerapeutas } = await pool.query('SELECT nome, email FROM terapeutas');
@@ -187,6 +194,12 @@ async function seedDatabase() {
     
     console.log('👩‍⚕️ Terapeutas:');
     allTerapeutas.forEach(t => console.log(`   ${t.nome} - ${t.email}`));
+    
+    console.log('');
+    console.log('🔒 Para máxima segurança:');
+    console.log('1. Configure DEFAULT_SEED_PASSWORD no .env');
+    console.log('2. Use senhas únicas para cada usuário');
+    console.log('3. Implemente troca obrigatória de senha no primeiro login');
     
     process.exit(0);
   } catch (error) {
