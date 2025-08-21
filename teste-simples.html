@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste CliniAgende v4 - Simples</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h1 class="text-3xl font-bold mb-6">CliniAgende v4 - Teste Funcional</h1>
+        
+        <!-- Login Buttons (simulando a tela original) -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button onclick="testTerapeutaFlow()" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg">
+                🧑‍⚕️ Testar Fluxo Terapeuta
+            </button>
+            <button onclick="testSupervisorFlow()" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg">
+                👨‍💼 Testar Fluxo Supervisor
+            </button>
+        </div>
+
+        <!-- Mock Elements (simulando elementos do index.html) -->
+        <div id="mock-elements" class="hidden">
+            <div id="login-view"></div>
+            <div id="app-view" class="hidden"></div>
+            <div id="sidebar-nav"></div>
+            <div id="mobile-nav"></div>
+            <div id="user-avatar"></div>
+            <div id="user-name"></div>
+            <div id="user-role"></div>
+            <div id="sidebar-user-name"></div>
+            <div id="sidebar-user-role"></div>
+        </div>
+
+        <!-- Results -->
+        <div id="test-results" class="mt-6 p-4 bg-gray-50 rounded max-h-96 overflow-y-auto"></div>
+    </div>
+
+    <!-- Modal container -->
+    <div id="modals-container"></div>
+    
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-2"></div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/forms.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function addResult(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testResults.push({
+                time: timestamp,
+                message: message,
+                type: type
+            });
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const container = document.getElementById('test-results');
+            const html = testResults.map(result => {
+                const color = {
+                    'success': 'text-green-600 bg-green-50',
+                    'error': 'text-red-600 bg-red-50',
+                    'warning': 'text-yellow-600 bg-yellow-50',
+                    'info': 'text-blue-600 bg-blue-50'
+                }[result.type] || 'text-gray-600';
+                
+                return `<div class="p-2 mb-1 rounded ${color}">
+                    <span class="text-xs opacity-75">[${result.time}]</span> ${result.message}
+                </div>`;
+            }).join('');
+            
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function testTerapeutaFlow() {
+            addResult('🧑‍⚕️ Iniciando teste do fluxo de Terapeuta...', 'info');
+            
+            try {
+                // Test 1: Initialize app
+                if (!App.initialized) {
+                    await App.init();
+                    addResult('✅ App inicializado', 'success');
+                } else {
+                    addResult('ℹ️ App já inicializado', 'info');
+                }
+
+                // Test 2: Login as therapist
+                App.loginAs('terapeuta');
+                if (App.currentUser && App.currentUser.role === 'terapeuta') {
+                    addResult(`✅ Login realizado: ${App.currentUser.data.name}`, 'success');
+                } else {
+                    addResult('❌ Falha no login', 'error');
+                    return;
+                }
+
+                // Test 3: Test functions exist
+                const functions = ['openAvailabilityModal', 'openStatusUpdateModal', 'schedulePatient'];
+                functions.forEach(func => {
+                    if (typeof window[func] === 'function') {
+                        addResult(`✅ Função ${func} disponível`, 'success');
+                    } else {
+                        addResult(`❌ Função ${func} não encontrada`, 'error');
+                    }
+                });
+
+                // Test 4: Test data access
+                const myAppointments = dataManager.getAgendamentos({ 
+                    terapeutaId: App.currentUser.data.id 
+                });
+                addResult(`📊 Agendamentos do terapeuta: ${myAppointments.length}`, 'info');
+
+                // Test 5: Test modal opening
+                try {
+                    openAvailabilityModal();
+                    addResult('✅ Modal de disponibilidade aberto', 'success');
+                    Utils.closeModal(); // Close it
+                } catch (error) {
+                    addResult(`❌ Erro ao abrir modal: ${error.message}`, 'error');
+                }
+
+                addResult('🎉 Teste de Terapeuta concluído!', 'success');
+
+            } catch (error) {
+                addResult(`❌ Erro geral no fluxo: ${error.message}`, 'error');
+                console.error('Therapist flow error:', error);
+            }
+        }
+
+        async function testSupervisorFlow() {
+            addResult('👨‍💼 Iniciando teste do fluxo de Supervisor...', 'info');
+            
+            try {
+                // Test 1: Initialize app
+                if (!App.initialized) {
+                    await App.init();
+                    addResult('✅ App inicializado', 'success');
+                } else {
+                    addResult('ℹ️ App já inicializado', 'info');
+                }
+
+                // Test 2: Login as supervisor
+                App.loginAs('supervisor');
+                if (App.currentUser && App.currentUser.role === 'supervisor') {
+                    addResult(`✅ Login realizado: ${App.currentUser.data.name}`, 'success');
+                } else {
+                    addResult('❌ Falha no login', 'error');
+                    return;
+                }
+
+                // Test 3: Test functions exist
+                const functions = ['openPatientProfileModal', 'openBookingModal', 'schedulePatient'];
+                functions.forEach(func => {
+                    if (typeof window[func] === 'function') {
+                        addResult(`✅ Função ${func} disponível`, 'success');
+                    } else {
+                        addResult(`❌ Função ${func} não encontrada`, 'error');
+                    }
+                });
+
+                // Test 4: Test data access
+                const patients = dataManager.getPacientes();
+                const therapists = dataManager.getTerapeutas();
+                const availabilities = dataManager.getDisponibilidades();
+                
+                addResult(`📊 Pacientes: ${patients.length}`, 'info');
+                addResult(`📊 Terapeutas: ${therapists.length}`, 'info');
+                addResult(`📊 Disponibilidades: ${availabilities.length}`, 'info');
+
+                // Test 5: Test patient modal
+                if (patients.length > 0) {
+                    try {
+                        openPatientProfileModal(patients[0].id);
+                        addResult('✅ Modal de paciente aberto', 'success');
+                        Utils.closeModal(); // Close it
+                    } catch (error) {
+                        addResult(`❌ Erro ao abrir modal de paciente: ${error.message}`, 'error');
+                    }
+                }
+
+                addResult('🎉 Teste de Supervisor concluído!', 'success');
+
+            } catch (error) {
+                addResult(`❌ Erro geral no fluxo: ${error.message}`, 'error');
+                console.error('Supervisor flow error:', error);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            addResult('📄 Página carregada', 'info');
+            lucide.createIcons();
+            
+            try {
+                await App.init();
+                addResult('✅ Aplicação inicializada com sucesso', 'success');
+                
+                // Show data stats
+                const stats = dataManager.getEstatisticas();
+                addResult(`📊 Sistema pronto: ${stats.totalTerapeutas} terapeutas, ${stats.totalPacientes} pacientes`, 'info');
+                
+            } catch (error) {
+                addResult('❌ Erro na inicialização: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

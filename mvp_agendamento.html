@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CliniAgende v3 - Gestão de Consultas</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Estilos personalizados para complementar o Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Efeito de transição suave para elementos que aparecem/desaparecem */
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .fade-out { animation: fadeOut 0.5s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
+        
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <!-- Tela de Login (Inicial) -->
+    <div id="login-view" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-cyan-100 p-4">
+        <div class="w-full max-w-md text-center">
+            <div class="bg-white p-8 md:p-12 rounded-2xl shadow-xl">
+                <div class="flex justify-center items-center gap-3 mb-4">
+                    <svg class="h-10 w-10 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+                    <h1 class="text-3xl font-bold text-slate-800">CliniAgende</h1>
+                </div>
+                <p class="text-slate-500 mb-8">Bem-vindo(a). Selecione seu perfil para continuar.</p>
+                <div class="space-y-4">
+                    <button onclick="loginAs('terapeuta')" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                        Entrar como Terapeuta
+                    </button>
+                    <button onclick="loginAs('supervisor')" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
+                        Entrar como Supervisor
+                    </button>
+                </div>
+            </div>
+             <p class="text-xs text-slate-400 mt-6">MVP v3: Dados simulados para demonstração.</p>
+        </div>
+    </div>
+
+    <!-- Visão Principal da Aplicação (Oculta por padrão) -->
+    <div id="app-view" class="hidden h-screen flex">
+        <!-- Barra Lateral -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex-col p-4 hidden md:flex">
+            <div class="flex items-center gap-3 mb-8 px-2">
+                <svg class="h-8 w-8 text-teal-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>
+                <h1 class="text-xl font-bold">CliniAgende</h1>
+            </div>
+            <nav id="sidebar-nav" class="flex-1 space-y-2">
+                <!-- Links de navegação serão inseridos aqui pelo JS -->
+            </nav>
+            <div class="mt-auto">
+                <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Cabeçalho -->
+            <header class="bg-white border-b border-slate-200 p-4 flex justify-between items-center">
+                <h2 id="page-title" class="text-2xl font-bold text-slate-800">Dashboard</h2>
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <i data-lucide="bell" class="w-6 h-6 text-slate-500 cursor-pointer"></i>
+                        <span id="notification-dot" class="hidden absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <img id="user-avatar" src="" alt="Avatar" class="w-10 h-10 rounded-full object-cover">
+                        <div>
+                            <p id="user-name" class="font-semibold text-sm"></p>
+                            <p id="user-role" class="text-xs text-slate-500"></p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Área de Conteúdo (com scroll) -->
+            <main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                <!-- Conteúdo da página será inserido aqui pelo JS -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Modais (Ocultos por padrão) -->
+    
+    <!-- Modal de Adicionar Disponibilidade (Terapeuta) -->
+    <div id="availability-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative fade-in">
+            <button onclick="closeModal('availability-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-4">Adicionar Disponibilidade</h3>
+            <form id="availability-form" class="space-y-4">
+                <div>
+                    <label for="availability-date" class="block text-sm font-medium text-slate-700">Data</label>
+                    <input type="date" id="availability-date" name="date" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="availability-time" class="block text-sm font-medium text-slate-700">Horário</label>
+                    <input type="time" id="availability-time" name="time" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeModal('availability-modal')" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Agendamento (Supervisor) -->
+    <div id="booking-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 relative fade-in max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('booking-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-4">Agendar Paciente</h3>
+            <p class="text-sm text-slate-500 mb-4">Agendando para <span id="booking-slot-info" class="font-semibold"></span></p>
+            <form id="booking-form" class="space-y-4">
+                <input type="hidden" id="booking-slot-id">
+                <div>
+                    <label for="patient-select" class="block text-sm font-medium text-slate-700">Paciente</label>
+                    <select id="patient-select" name="patientId" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                        <!-- Opções de pacientes serão inseridas aqui -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="patient-name" class="block text-sm font-medium text-slate-700">Nome Completo</label>
+                        <input type="text" id="patient-name" disabled class="mt-1 block w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md shadow-sm">
+                    </div>
+                    <div>
+                        <label for="booking-location" class="block text-sm font-medium text-slate-700">Local de Atendimento</label>
+                        <select id="booking-location" name="location" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            <option value="Clínica">Clínica</option>
+                            <option value="Escola">Escola</option>
+                            <option value="Residência">Residência</option>
+                            <option value="Online">Online</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="patient-diagnosis" class="block text-sm font-medium text-slate-700">Diagnóstico Principal</label>
+                    <input type="text" id="patient-diagnosis" disabled class="mt-1 block w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-md shadow-sm">
+                </div>
+                <div>
+                    <label for="booking-tips" class="block text-sm font-medium text-slate-700">Dicas Rápidas para a Sessão</label>
+                    <textarea id="booking-tips" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500" placeholder="Ex: Gosta de dinossauros, sensível a barulhos altos..."></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeModal('booking-modal')" class="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600">Confirmar Agendamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal de Perfil do Paciente (Supervisor) -->
+    <div id="patient-profile-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div id="patient-profile-content" class="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-6 relative fade-in max-h-[90vh] overflow-y-auto">
+            <!-- Conteúdo do perfil será inserido aqui -->
+        </div>
+    </div>
+
+    <!-- Modal de Atualizar Status (Terapeuta) -->
+    <div id="status-update-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 relative fade-in text-center">
+             <button onclick="closeModal('status-update-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h3 class="text-xl font-bold mb-2">Atualizar Status da Sessão</h3>
+            <p id="status-update-info" class="text-slate-500 mb-6"></p>
+            <div class="flex flex-col gap-3">
+                <button onclick="updateAppointmentStatus('realizado')" class="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">
+                    <i data-lucide="check-check" class="w-5 h-5"></i> Marcar como Realizada
+                </button>
+                <button onclick="updateAppointmentStatus('cancelado')" class="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg">
+                    <i data-lucide="x-circle" class="w-5 h-5"></i> Marcar como Cancelada
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast de Notificação -->
+    <div id="toast-notification" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-5 rounded-lg shadow-lg flex items-center gap-3 transform translate-x-[120%] transition-transform duration-500 z-50">
+        <i data-lucide="check-circle" class="w-6 h-6"></i>
+        <span id="toast-message"></span>
+    </div>
+
+
+    <script>
+        // --- LÓGICA DA APLICAÇÃO ---
+
+        // 1. ESTADO E DADOS SIMULADOS
+        // =================================
+        const appState = {
+            currentUser: null,
+            currentView: 'dashboard',
+            currentDate: new Date(),
+            selectedSlot: null,
+            selectedAppointmentId: null,
+            selectedTerapeutaId: null, // NOVO: para a visão de agenda da terapeuta
+        };
+
+        const mockData = {
+            terapeutas: [
+                { id: 1, name: 'Dra. Ana Sousa', avatar: 'https://placehold.co/100x100/a7f3d0/15803d?text=AS' },
+                { id: 2, name: 'Dr. Carlos Lima', avatar: 'https://placehold.co/100x100/bae6fd/0c4a6e?text=CL' }
+            ],
+            supervisores: [
+                { id: 101, name: 'Mariana Costa', avatar: 'https://placehold.co/100x100/fecaca/991b1b?text=MC' }
+            ],
+            pacientes: [
+                { id: 201, name: 'João Silva', birthdate: '2015-05-20', diagnosis: 'TDAH' },
+                { id: 202, name: 'Maria Eduarda Oliveira', birthdate: '2017-02-10', diagnosis: 'Transtorno do Espectro Autista (TEA)' },
+                { id: 203, name: 'Pedro Henrique Alves', birthdate: '2016-11-30', diagnosis: 'Ansiedade de Separação' }
+            ],
+            disponibilidades: [
+                { id: 1, terapeutaId: 1, datetime: new Date(new Date().setDate(new Date().getDate() + 2)).setHours(10,0,0,0) },
+                { id: 2, terapeutaId: 1, datetime: new Date(new Date().setDate(new Date().getDate() + 2)).setHours(11,0,0,0) },
+                { id: 3, terapeutaId: 2, datetime: new Date(new Date().setDate(new Date().getDate() + 3)).setHours(14,0,0,0) },
+                { id: 4, terapeutaId: 2, datetime: new Date(new Date().setDate(new Date().getDate() + 1)).setHours(15,0,0,0) },
+            ],
+            agendamentos: [
+                { id: 1001, pacienteId: 201, terapeutaId: 1, datetime: new Date(new Date().setDate(new Date().getDate() + 1)).setHours(9,0,0,0), location: 'Clínica', tips: 'Gosta de carrinhos e super-heróis.', status: 'agendado' },
+                { id: 1002, pacienteId: 202, terapeutaId: 1, datetime: new Date(new Date().setDate(new Date().getDate() - 1)).setHours(14,0,0,0), location: 'Escola', tips: 'Prefere atividades calmas.', status: 'realizado' },
+                { id: 1003, pacienteId: 203, terapeutaId: 2, datetime: new Date(new Date().setDate(new Date().getDate() + 0)).setHours(10,0,0,0), location: 'Residência', tips: '', status: 'agendado' }
+            ]
+        };
+
+        // 2. FUNÇÕES DE LOGIN E RENDERIZAÇÃO PRINCIPAL
+        // =============================================
+        function loginAs(role) {
+            if (role === 'terapeuta') {
+                appState.currentUser = { role: 'terapeuta', data: mockData.terapeutas[0] };
+            } else {
+                appState.currentUser = { role: 'supervisor', data: mockData.supervisores[0] };
+            }
+            
+            document.getElementById('login-view').classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('app-view').classList.remove('hidden');
+                document.getElementById('app-view').classList.add('fade-in');
+                initializeAppView();
+            }, 500);
+        }
+
+        function logout() {
+            appState.currentUser = null;
+            appState.selectedTerapeutaId = null; // Resetar estado ao sair
+            document.getElementById('app-view').classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('app-view').classList.add('hidden');
+                document.getElementById('login-view').classList.remove('hidden', 'fade-out');
+                document.getElementById('login-view').classList.add('fade-in');
+            }, 500);
+        }
+
+        function initializeAppView() {
+            lucide.createIcons();
+            updateHeader();
+            updateSidebar();
+            navigateTo('dashboard');
+        }
+
+        function updateHeader() {
+            const { name, avatar } = appState.currentUser.data;
+            document.getElementById('user-avatar').src = avatar;
+            document.getElementById('user-name').textContent = name;
+            document.getElementById('user-role').textContent = appState.currentUser.role.charAt(0).toUpperCase() + appState.currentUser.role.slice(1);
+        }
+        
+        function updateSidebar() {
+            const nav = document.getElementById('sidebar-nav');
+            const role = appState.currentUser.role;
+            let links = `
+                <a href="#" onclick="navigateTo('dashboard')" class="nav-link flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors" data-view="dashboard"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>Dashboard</span></a>
+                <a href="#" onclick="navigateTo('calendario')" class="nav-link flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors" data-view="calendario"><i data-lucide="calendar" class="w-5 h-5"></i><span>Calendário</span></a>
+            `;
+            if (role === 'supervisor') {
+                links += `
+                    <a href="#" onclick="navigateTo('pacientes')" class="nav-link flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors" data-view="pacientes"><i data-lucide="users" class="w-5 h-5"></i><span>Pacientes</span></a>
+                    <a href="#" onclick="navigateTo('novo-paciente')" class="nav-link flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors" data-view="novo-paciente"><i data-lucide="user-plus" class="w-5 h-5"></i><span>Novo Paciente</span></a>
+                    <a href="#" onclick="navigateTo('terapeutas')" class="nav-link flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors" data-view="terapeutas"><i data-lucide="user-cog" class="w-5 h-5"></i><span>Terapeutas</span></a>
+                `;
+            }
+            nav.innerHTML = links;
+            lucide.createIcons();
+        }
+
+        function navigateTo(view) {
+            appState.currentView = view;
+            appState.selectedTerapeutaId = null; // Resetar ao navegar para uma nova aba
+            
+            const viewTitles = {
+                dashboard: 'Dashboard',
+                calendario: 'Calendário & Agendamentos',
+                pacientes: 'Gestão de Pacientes',
+                'novo-paciente': 'Cadastrar Novo Paciente',
+                terapeutas: 'Equipe de Terapeutas'
+            };
+            document.getElementById('page-title').textContent = viewTitles[view];
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('bg-slate-100', 'text-slate-900', 'font-semibold');
+                if (link.dataset.view === view) {
+                    link.classList.add('bg-slate-100', 'text-slate-900', 'font-semibold');
+                }
+            });
+
+            const contentArea = document.getElementById('main-content');
+            if (view === 'dashboard') contentArea.innerHTML = renderDashboard();
+            if (view === 'calendario') contentArea.innerHTML = renderCalendarView();
+            if (view === 'pacientes') contentArea.innerHTML = renderPacientesView();
+            if (view === 'novo-paciente') contentArea.innerHTML = renderNovoPacienteView();
+            if (view === 'terapeutas') contentArea.innerHTML = renderTerapeutasView();
+            
+            lucide.createIcons();
+            if (view === 'calendario') renderCalendarGrid();
+            if (view === 'novo-paciente') initializeNovoPacienteForm();
+        }
+
+        // 3. FUNÇÕES DE RENDERIZAÇÃO DE CONTEÚDO
+        // =======================================
+
+        function renderDashboard() {
+            const role = appState.currentUser.role;
+            if (role === 'terapeuta') {
+                const myAppointments = mockData.agendamentos.filter(a => a.terapeutaId === appState.currentUser.data.id && new Date(a.datetime) >= new Date(new Date().setDate(new Date().getDate() - 1)));
+                myAppointments.sort((a,b) => a.datetime - b.datetime);
+                const nextAppointments = myAppointments.filter(a => a.status === 'agendado').slice(0, 3);
+                
+                return `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md">
+                            <h3 class="font-bold text-lg mb-4">Próximos Agendamentos</h3>
+                            <div class="space-y-4">
+                                ${nextAppointments.length > 0 ? nextAppointments.map(app => {
+                                    const paciente = mockData.pacientes.find(p => p.id === app.pacienteId);
+                                    const date = new Date(app.datetime);
+                                    return `<div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"><div><p class="font-semibold">${paciente.name}</p><p class="text-sm text-slate-500">${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})} - ${app.location}</p></div><span class="text-xs font-medium py-1 px-2 rounded-full bg-teal-100 text-teal-800">Agendado</span></div>`
+                                }).join('') : '<p class="text-slate-500">Nenhum agendamento futuro.</p>'}
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-md flex flex-col justify-between">
+                             <div>
+                                <h3 class="font-bold text-lg mb-4">Ações Rápidas</h3>
+                                <button onclick="openModal('availability-modal')" class="w-full flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105"><i data-lucide="plus-circle" class="w-5 h-5"></i>Adicionar Disponibilidade</button>
+                            </div>
+                            <div class="mt-6 text-center">
+                                <p class="text-4xl font-bold text-teal-600">${myAppointments.filter(a => a.status === 'realizado').length}</p>
+                                <p class="text-slate-500">Sessões realizadas este mês</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else { // Supervisor
+                 return `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4"><i data-lucide="users" class="w-10 h-10 text-cyan-500"></i><div><h4 class="font-semibold text-slate-500">Total de Pacientes</h4><p class="text-3xl font-bold mt-1">${mockData.pacientes.length}</p></div></div>
+                        <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4"><i data-lucide="calendar-check" class="w-10 h-10 text-teal-500"></i><div><h4 class="font-semibold text-slate-500">Sessões Agendadas</h4><p class="text-3xl font-bold mt-1">${mockData.agendamentos.filter(a => a.status === 'agendado').length}</p></div></div>
+                        <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4"><i data-lucide="clock" class="w-10 h-10 text-green-500"></i><div><h4 class="font-semibold text-slate-500">Horários Livres</h4><p class="text-3xl font-bold mt-1">${mockData.disponibilidades.length}</p></div></div>
+                        <div class="bg-white p-6 rounded-2xl shadow-md flex items-center gap-4"><i data-lucide="user-cog" class="w-10 h-10 text-indigo-500"></i><div><h4 class="font-semibold text-slate-500">Terapeutas Ativas</h4><p class="text-3xl font-bold mt-1">${mockData.terapeutas.length}</p></div></div>
+                    </div>
+                    <div class="mt-8 bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Pacientes Aguardando Agendamento</h3>
+                        <div class="divide-y divide-slate-100">
+                            ${mockData.pacientes.filter(p => !mockData.agendamentos.some(a => a.pacienteId === p.id && a.status === 'agendado')).map(p => `<div class="flex items-center justify-between py-3"><div><p class="font-semibold">${p.name}</p><p class="text-sm text-slate-500">${p.diagnosis}</p></div><button onclick="navigateTo('calendario')" class="px-3 py-1 bg-cyan-100 text-cyan-800 text-sm font-semibold rounded-full hover:bg-cyan-200">Agendar</button></div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderCalendarView() {
+            return `
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                        <div class="flex items-center gap-4">
+                            <button onclick="changeMonth(-1)" class="p-2 rounded-full hover:bg-slate-100"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
+                            <h3 id="calendar-month-year" class="text-xl font-bold w-48 text-center"></h3>
+                            <button onclick="changeMonth(1)" class="p-2 rounded-full hover:bg-slate-100"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
+                        </div>
+                        ${appState.currentUser.role === 'terapeuta' ? `<button onclick="openModal('availability-modal')" class="mt-4 md:mt-0 flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg"><i data-lucide="plus" class="w-5 h-5"></i>Adicionar Horário</button>` : ''}
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden">
+                        <div class="text-center font-semibold py-2 bg-slate-50 text-sm">Dom</div><div class="text-center font-semibold py-2 bg-slate-50 text-sm">Seg</div><div class="text-center font-semibold py-2 bg-slate-50 text-sm">Ter</div><div class="text-center font-semibold py-2 bg-slate-50 text-sm">Qua</div><div class="text-center font-semibold py-2 bg-slate-50 text-sm">Qui</div><div class="text-center font-semibold py-2 bg-slate-50 text-sm">Sex</div><div class="text-center font-semibold py-2 bg-slate-50 text-sm">Sáb</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCalendarGrid() {
+            const calendarGrid = document.getElementById('calendar-grid');
+            const monthYearEl = document.getElementById('calendar-month-year');
+            if (!calendarGrid || !monthYearEl) return;
+            
+            while (calendarGrid.children.length > 7) calendarGrid.removeChild(calendarGrid.lastChild);
+
+            const date = appState.currentDate;
+            monthYearEl.textContent = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+            const year = date.getFullYear(), month = date.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+
+            for (let i = 0; i < firstDay; i++) calendarGrid.insertAdjacentHTML('beforeend', '<div class="bg-slate-50"></div>');
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayStart = new Date(year, month, day).setHours(0,0,0,0);
+                const dayEnd = new Date(year, month, day).setHours(23,59,59,999);
+                const disponibilidadesDoDia = mockData.disponibilidades.filter(d => d.datetime >= dayStart && d.datetime <= dayEnd);
+                const agendamentosDoDia = mockData.agendamentos.filter(a => a.datetime >= dayStart && a.datetime <= dayEnd);
+
+                let eventsHtml = '<div class="mt-2 space-y-1 overflow-y-auto max-h-24">';
+                disponibilidadesDoDia.forEach(d => {
+                    const terapeuta = mockData.terapeutas.find(t => t.id === d.terapeutaId);
+                    eventsHtml += `<div onclick="handleSlotClick(${d.id}, 'disponibilidade')" class="p-1 text-xs rounded transition-colors bg-green-100 text-green-800 ${appState.currentUser.role === 'supervisor' ? 'cursor-pointer hover:bg-green-200' : ''}"><p class="font-semibold">${new Date(d.datetime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p><p>${terapeuta.name.split(' ')[1]}</p></div>`;
+                });
+                agendamentosDoDia.forEach(a => {
+                    const paciente = mockData.pacientes.find(p => p.id === a.pacienteId);
+                    const terapeuta = mockData.terapeutas.find(t => t.id === a.terapeutaId);
+                    const statusStyles = { agendado: { bg: 'bg-cyan-100', text: 'text-cyan-800', hover: 'hover:bg-cyan-200' }, realizado: { bg: 'bg-indigo-100', text: 'text-indigo-800', hover: 'hover:bg-indigo-200' }, cancelado: { bg: 'bg-red-100', text: 'text-red-800', hover: 'hover:bg-red-200' } };
+                    const style = statusStyles[a.status];
+                    eventsHtml += `<div onclick="handleSlotClick(${a.id}, 'agendamento')" class="p-1 text-xs rounded ${style.bg} ${style.text} ${appState.currentUser.role === 'terapeuta' ? `cursor-pointer ${style.hover}` : ''}"><p class="font-semibold">${new Date(a.datetime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} - ${paciente.name.split(' ')[0]}</p><p>${terapeuta.name.split(' ')[1]}</p></div>`;
+                });
+                eventsHtml += '</div>';
+
+                calendarGrid.insertAdjacentHTML('beforeend', `<div class="bg-white p-2 min-h-[120px] flex flex-col"><span class="font-semibold text-sm self-start mb-1 px-1.5 py-0.5 rounded-full ${new Date().toDateString() === new Date(year, month, day).toDateString() ? 'bg-teal-500 text-white' : 'bg-white'}">${day}</span>${eventsHtml}</div>`);
+            }
+        }
+        
+        function renderPacientesView() {
+            return `
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-lg">Lista de Pacientes</h3>
+                        <button onclick="navigateTo('novo-paciente')" class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105">
+                            <i data-lucide="user-plus" class="w-5 h-5"></i>
+                            Novo Paciente
+                        </button>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        ${mockData.pacientes.map(p => `<div class="flex items-center justify-between py-4"><div><p class="font-semibold text-base">${p.name}</p><p class="text-sm text-slate-500">${p.diagnosis}</p></div><div class="flex items-center gap-4"><span class="text-sm text-slate-500">Nasc: ${new Date(p.birthdate).toLocaleDateString('pt-BR')}</span><button onclick="openPatientProfileModal(${p.id})" class="px-3 py-1 bg-slate-100 text-slate-800 text-sm font-semibold rounded-full hover:bg-slate-200">Ver Perfil</button></div></div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderNovoPacienteView() {
+            return `
+                <div class="bg-white p-6 rounded-2xl shadow-md">
+                    <div class="flex items-center gap-4 mb-6">
+                        <button onclick="navigateTo('pacientes')" class="flex items-center gap-2 px-3 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                            Voltar
+                        </button>
+                        <h3 class="font-bold text-lg">Cadastrar Novo Paciente</h3>
+                    </div>
+                    
+                    <form id="novo-paciente-form" class="space-y-6">
+                        <!-- Informações Básicas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Básicas</h4>
+                            </div>
+                            <div>
+                                <label for="nome" class="block text-sm font-medium text-slate-700">Nome Completo *</label>
+                                <input type="text" id="nome" name="nome" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="cpf" class="block text-sm font-medium text-slate-700">CPF *</label>
+                                <input type="text" id="cpf" name="cpf" required placeholder="000.000.000-00" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="data_nascimento" class="block text-sm font-medium text-slate-700">Data de Nascimento *</label>
+                                <input type="date" id="data_nascimento" name="data_nascimento" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="sexo" class="block text-sm font-medium text-slate-700">Sexo *</label>
+                                <select id="sexo" name="sexo" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Feminino">Feminino</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Endereço -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Endereço</h4>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="endereco_rua" class="block text-sm font-medium text-slate-700">Rua e Número *</label>
+                                <input type="text" id="endereco_rua" name="endereco_rua" required placeholder="Ex: Rua das Flores, 123" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="endereco_bairro" class="block text-sm font-medium text-slate-700">Bairro *</label>
+                                <input type="text" id="endereco_bairro" name="endereco_bairro" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="endereco_cidade" class="block text-sm font-medium text-slate-700">Cidade *</label>
+                                <input type="text" id="endereco_cidade" name="endereco_cidade" required value="São Paulo" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="endereco_cep" class="block text-sm font-medium text-slate-700">CEP *</label>
+                                <input type="text" id="endereco_cep" name="endereco_cep" required placeholder="00000-000" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Contato -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Contato</h4>
+                            </div>
+                            <div>
+                                <label for="telefone" class="block text-sm font-medium text-slate-700">Telefone *</label>
+                                <input type="tel" id="telefone" name="telefone" required placeholder="(11) 91234-5678" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="email_responsavel" class="block text-sm font-medium text-slate-700">Email do Responsável *</label>
+                                <input type="email" id="email_responsavel" name="email_responsavel" required placeholder="exemplo@email.com" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Responsável -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-3">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Responsável Legal</h4>
+                            </div>
+                            <div>
+                                <label for="responsavel_nome" class="block text-sm font-medium text-slate-700">Nome do Responsável *</label>
+                                <input type="text" id="responsavel_nome" name="responsavel_nome" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="responsavel_cpf" class="block text-sm font-medium text-slate-700">CPF do Responsável *</label>
+                                <input type="text" id="responsavel_cpf" name="responsavel_cpf" required placeholder="000.000.000-00" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="responsavel_parentesco" class="block text-sm font-medium text-slate-700">Parentesco *</label>
+                                <select id="responsavel_parentesco" name="responsavel_parentesco" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="Mãe">Mãe</option>
+                                    <option value="Pai">Pai</option>
+                                    <option value="Avô">Avô</option>
+                                    <option value="Avó">Avó</option>
+                                    <option value="Tio">Tio</option>
+                                    <option value="Tia">Tia</option>
+                                    <option value="Responsável Legal">Responsável Legal</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Informações Clínicas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Clínicas</h4>
+                            </div>
+                            <div>
+                                <label for="diagnostico_principal" class="block text-sm font-medium text-slate-700">Diagnóstico Principal *</label>
+                                <input type="text" id="diagnostico_principal" name="diagnostico_principal" required placeholder="Ex: TDAH, TEA, etc." class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="tipo_terapia" class="block text-sm font-medium text-slate-700">Tipo de Terapia *</label>
+                                <select id="tipo_terapia" name="tipo_terapia" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="ABA">ABA</option>
+                                    <option value="Fonoaudiologia">Fonoaudiologia</option>
+                                    <option value="Psicoterapia Individual">Psicoterapia Individual</option>
+                                    <option value="Terapia Ocupacional">Terapia Ocupacional</option>
+                                    <option value="Psicomotricidade">Psicomotricidade</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="frequencia_recomendada" class="block text-sm font-medium text-slate-700">Frequência Recomendada *</label>
+                                <select id="frequencia_recomendada" name="frequencia_recomendada" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="1x por semana">1x por semana</option>
+                                    <option value="2x por semana">2x por semana</option>
+                                    <option value="3x por semana">3x por semana</option>
+                                    <option value="4x por semana">4x por semana</option>
+                                    <option value="5x por semana">5x por semana</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="escola" class="block text-sm font-medium text-slate-700">Escola</label>
+                                <input type="text" id="escola" name="escola" placeholder="Nome da escola" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Informações Adicionais -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Adicionais</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="medicacoes" class="block text-sm font-medium text-slate-700">Medicações</label>
+                                    <textarea id="medicacoes" name="medicacoes" rows="3" placeholder="Ex: Ritalina 10mg - 1x ao dia" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                                <div>
+                                    <label for="alergias" class="block text-sm font-medium text-slate-700">Alergias</label>
+                                    <textarea id="alergias" name="alergias" rows="3" placeholder="Ex: Lactose, Amendoim" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label for="preferencias" class="block text-sm font-medium text-slate-700">Preferências</label>
+                                    <textarea id="preferencias" name="preferencias" rows="3" placeholder="Ex: Brinquedos de encaixe, Histórias de super-heróis" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                                <div>
+                                    <label for="gatilhos" class="block text-sm font-medium text-slate-700">Gatilhos</label>
+                                    <textarea id="gatilhos" name="gatilhos" rows="3" placeholder="Ex: Barulhos altos, Mudanças bruscas de rotina" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <label for="observacoes" class="block text-sm font-medium text-slate-700">Observações Gerais</label>
+                                <textarea id="observacoes" name="observacoes" rows="4" placeholder="Informações importantes sobre o paciente, comportamentos, estratégias eficazes..." class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-200">
+                            <button type="button" onclick="navigateTo('pacientes')" class="flex-1 px-6 py-3 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 font-semibold">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="flex-1 px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 font-semibold">
+                                Cadastrar Paciente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+        
+        // NOVO: Renderiza a visão de Terapeutas
+        function renderTerapeutasView() {
+            if (appState.selectedTerapeutaId === null) {
+                // Visão de lista de todas as terapeutas
+                return `
+                    <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <h3 class="font-bold text-lg mb-4">Equipe de Terapeutas</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${mockData.terapeutas.map(t => {
+                                const appointments = mockData.agendamentos.filter(a => a.terapeutaId === t.id && a.status === 'agendado');
+                                return `
+                                <div class="border border-slate-200 rounded-xl p-4 flex flex-col">
+                                    <div class="flex items-center gap-4 mb-4">
+                                        <img src="${t.avatar}" alt="Avatar" class="w-16 h-16 rounded-full">
+                                        <div>
+                                            <p class="font-bold text-lg">${t.name}</p>
+                                            <p class="text-sm text-slate-500">${appointments.length} sessões agendadas</p>
+                                        </div>
+                                    </div>
+                                    <button onclick="viewTerapeutaAgenda(${t.id})" class="mt-auto w-full text-center bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">Ver Agenda</button>
+                                </div>
+                                `
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Visão de detalhes da agenda de uma terapeuta
+                const terapeuta = mockData.terapeutas.find(t => t.id === appState.selectedTerapeutaId);
+                const terapeutaAppointments = mockData.agendamentos.filter(a => a.terapeutaId === terapeuta.id).sort((a, b) => b.datetime - a.datetime);
+                return `
+                     <div class="bg-white p-6 rounded-2xl shadow-md">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-4">
+                                <img src="${terapeuta.avatar}" alt="Avatar" class="w-16 h-16 rounded-full">
+                                <div>
+                                    <h3 class="text-2xl font-bold">${terapeuta.name}</h3>
+                                    <p class="text-slate-500">Agenda de sessões</p>
+                                </div>
+                            </div>
+                            <button onclick="viewAllTerapeutas()" class="flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">
+                                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                                Voltar
+                            </button>
+                        </div>
+                        <div class="space-y-3">
+                            ${terapeutaAppointments.length > 0 ? terapeutaAppointments.map(app => {
+                                const paciente = mockData.pacientes.find(p => p.id === app.pacienteId);
+                                const date = new Date(app.datetime);
+                                const statusClasses = { agendado: 'bg-cyan-100 text-cyan-800', realizado: 'bg-indigo-100 text-indigo-800', cancelado: 'bg-red-100 text-red-800' };
+                                return `
+                                    <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                                        <div>
+                                            <p class="font-semibold">Paciente: ${paciente.name}</p>
+                                            <p class="text-sm text-slate-500">${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} em ${app.location}</p>
+                                        </div>
+                                        <span class="text-xs font-medium py-1 px-2 rounded-full ${statusClasses[app.status]}">${app.status}</span>
+                                    </div>
+                                `;
+                            }).join('') : '<p class="text-slate-500 text-center py-4">Nenhum agendamento no histórico desta terapeuta.</p>'}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+
+        // 4. MANIPULADORES DE EVENTOS E LÓGICA DE MODAIS
+        // ===============================================
+
+        function changeMonth(offset) {
+            appState.currentDate.setMonth(appState.currentDate.getMonth() + offset);
+            renderCalendarGrid();
+        }
+
+        function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('fade-out');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('fade-out');
+            }, 300);
+        }
+
+        function handleSlotClick(id, type) {
+            const role = appState.currentUser.role;
+            if (role === 'supervisor' && type === 'disponibilidade') {
+                appState.selectedSlot = mockData.disponibilidades.find(d => d.id === id);
+                if (!appState.selectedSlot) return;
+                const terapeuta = mockData.terapeutas.find(t => t.id === appState.selectedSlot.terapeutaId);
+                const date = new Date(appState.selectedSlot.datetime);
+                document.getElementById('booking-slot-info').textContent = `${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} com ${terapeuta.name}`;
+                document.getElementById('booking-slot-id').value = id;
+                const patientSelect = document.getElementById('patient-select');
+                patientSelect.innerHTML = '<option value="">Selecione um paciente</option>';
+                mockData.pacientes.forEach(p => patientSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`);
+                document.getElementById('booking-form').reset();
+                updatePatientBookingForm(null);
+                openModal('booking-modal');
+            } else if (role === 'terapeuta' && type === 'agendamento') {
+                appState.selectedAppointmentId = id;
+                const appointment = mockData.agendamentos.find(a => a.id === id);
+                if (!appointment) return;
+                const paciente = mockData.pacientes.find(p => p.id === appointment.pacienteId);
+                document.getElementById('status-update-info').textContent = `Sessão de ${paciente.name}`;
+                openModal('status-update-modal');
+            }
+        }
+        
+        document.getElementById('patient-select')?.addEventListener('change', (e) => updatePatientBookingForm(e.target.value ? parseInt(e.target.value) : null));
+
+        function updatePatientBookingForm(patientId) {
+            const patient = mockData.pacientes.find(p => p.id === patientId);
+            document.getElementById('patient-name').value = patient ? patient.name : '';
+            document.getElementById('patient-diagnosis').value = patient ? patient.diagnosis : '';
+        }
+
+        document.getElementById('availability-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const [year, month, day] = formData.get('date').split('-');
+            const [hour, minute] = formData.get('time').split(':');
+            mockData.disponibilidades.push({ id: Date.now(), terapeutaId: appState.currentUser.data.id, datetime: new Date(year, month - 1, day, hour, minute).getTime() });
+            closeModal('availability-modal');
+            renderCalendarGrid();
+            showToast('Disponibilidade adicionada!');
+        });
+
+        document.getElementById('booking-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const patientId = parseInt(formData.get('patientId'));
+            if (!appState.selectedSlot || !patientId) return;
+            mockData.agendamentos.push({ id: Date.now(), pacienteId: patientId, terapeutaId: appState.selectedSlot.terapeutaId, datetime: appState.selectedSlot.datetime, location: formData.get('location'), tips: formData.get('booking-tips'), status: 'agendado' });
+            mockData.disponibilidades = mockData.disponibilidades.filter(d => d.id !== appState.selectedSlot.id);
+            closeModal('booking-modal');
+            renderCalendarGrid();
+            showToast('Paciente agendado com sucesso!');
+            if (appState.currentUser.role === 'supervisor') document.getElementById('notification-dot').classList.remove('hidden');
+        });
+
+        function updateAppointmentStatus(newStatus) {
+            const appointment = mockData.agendamentos.find(a => a.id === appState.selectedAppointmentId);
+            if (appointment) {
+                appointment.status = newStatus;
+                closeModal('status-update-modal');
+                renderCalendarGrid();
+                showToast(`Sessão marcada como ${newStatus}!`);
+            }
+        }
+
+        function openPatientProfileModal(patientId) {
+            const patient = mockData.pacientes.find(p => p.id === patientId);
+            if (!patient) return;
+            const patientAppointments = mockData.agendamentos.filter(a => a.pacienteId === patientId).sort((a, b) => b.datetime - a.datetime);
+            const contentEl = document.getElementById('patient-profile-content');
+            contentEl.innerHTML = `
+                <button onclick="closeModal('patient-profile-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                <div class="flex items-start gap-6"><img src="https://placehold.co/120x120/e0e7ff/4338ca?text=${patient.name.charAt(0)}" alt="Avatar" class="w-24 h-24 rounded-full border-4 border-white shadow-md"><div><h3 class="text-2xl font-bold">${patient.name}</h3><p class="text-slate-500">${patient.diagnosis}</p><p class="text-sm text-slate-500 mt-1">Data de Nasc.: ${new Date(patient.birthdate).toLocaleDateString('pt-BR')}</p></div></div>
+                <div class="mt-6 border-t border-slate-200 pt-4"><h4 class="font-bold text-lg mb-4">Histórico de Sessões</h4><div class="space-y-3">
+                    ${patientAppointments.length > 0 ? patientAppointments.map(app => {
+                        const terapeuta = mockData.terapeutas.find(t => t.id === app.terapeutaId);
+                        const statusClasses = { agendado: 'bg-cyan-100 text-cyan-800', realizado: 'bg-indigo-100 text-indigo-800', cancelado: 'bg-red-100 text-red-800' };
+                        return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg"><div><p class="font-semibold">${new Date(app.datetime).toLocaleDateString('pt-BR')} às ${new Date(app.datetime).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</p><p class="text-sm text-slate-500">com ${terapeuta.name} em ${app.location}</p></div><span class="text-xs font-medium py-1 px-2 rounded-full ${statusClasses[app.status]}">${app.status}</span></div>`;
+                    }).join('') : '<p class="text-slate-500">Nenhum agendamento no histórico.</p>'}
+                </div></div>`;
+            lucide.createIcons();
+            openModal('patient-profile-modal');
+        }
+
+        // NOVO: Funções para cadastro de pacientes
+        function initializeNovoPacienteForm() {
+            const form = document.getElementById('novo-paciente-form');
+            if (!form) return;
+            
+            // Adicionar máscaras de formatação
+            const cpfInput = document.getElementById('cpf');
+            const responsavelCpfInput = document.getElementById('responsavel_cpf');
+            const telefoneInput = document.getElementById('telefone');
+            const cepInput = document.getElementById('endereco_cep');
+            
+            // Máscara para CPF
+            function formatCPF(value) {
+                return value.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            }
+            
+            // Máscara para telefone
+            function formatTelefone(value) {
+                return value.replace(/\D/g, '').replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            }
+            
+            // Máscara para CEP
+            function formatCEP(value) {
+                return value.replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2');
+            }
+            
+            cpfInput.addEventListener('input', (e) => {
+                e.target.value = formatCPF(e.target.value);
+            });
+            
+            responsavelCpfInput.addEventListener('input', (e) => {
+                e.target.value = formatCPF(e.target.value);
+            });
+            
+            telefoneInput.addEventListener('input', (e) => {
+                e.target.value = formatTelefone(e.target.value);
+            });
+            
+            cepInput.addEventListener('input', (e) => {
+                e.target.value = formatCEP(e.target.value);
+            });
+            
+            // Submit do formulário
+            form.addEventListener('submit', handleNovoPacienteSubmit);
+        }
+        
+        function handleNovoPacienteSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const pacienteData = {};
+            
+            // Extrair dados do formulário
+            pacienteData.id = Date.now(); // ID baseado em timestamp
+            pacienteData.nome = formData.get('nome');
+            pacienteData.cpf = formData.get('cpf');
+            pacienteData.data_nascimento = formData.get('data_nascimento');
+            pacienteData.sexo = formData.get('sexo');
+            pacienteData.telefone = formData.get('telefone');
+            pacienteData.email_responsavel = formData.get('email_responsavel');
+            pacienteData.diagnostico_principal = formData.get('diagnostico_principal');
+            pacienteData.tipo_terapia = formData.get('tipo_terapia');
+            pacienteData.frequencia_recomendada = formData.get('frequencia_recomendada');
+            pacienteData.escola = formData.get('escola') || '';
+            pacienteData.status = 'ativo';
+            
+            // Endereço
+            pacienteData.endereco = {
+                rua: formData.get('endereco_rua'),
+                bairro: formData.get('endereco_bairro'),
+                cidade: formData.get('endereco_cidade'),
+                cep: formData.get('endereco_cep')
+            };
+            
+            // Responsável
+            pacienteData.responsavel = {
+                nome: formData.get('responsavel_nome'),
+                cpf: formData.get('responsavel_cpf'),
+                parentesco: formData.get('responsavel_parentesco')
+            };
+            
+            // Processar arrays e campos opcionais
+            const medicacoes = formData.get('medicacoes');
+            pacienteData.medicacoes = medicacoes ? medicacoes.split('\n').filter(m => m.trim()) : ['Nenhuma'];
+            
+            const alergias = formData.get('alergias');
+            pacienteData.alergias = alergias ? alergias.split('\n').filter(a => a.trim()) : ['Nenhuma conhecida'];
+            
+            const preferencias = formData.get('preferencias');
+            pacienteData.preferencias = preferencias ? preferencias.split('\n').filter(p => p.trim()) : [];
+            
+            const gatilhos = formData.get('gatilhos');
+            pacienteData.gatilhos = gatilhos ? gatilhos.split('\n').filter(g => g.trim()) : [];
+            
+            pacienteData.observacoes = formData.get('observacoes') || '';
+            
+            // Campos adicionais para manter compatibilidade
+            pacienteData.diagnosticos_secundarios = [];
+            pacienteData.estrategias_eficazes = [];
+            
+            // Validação básica
+            if (!validarPacienteData(pacienteData)) {
+                return;
+            }
+            
+            // Adicionar à lista de pacientes (estrutura completa)
+            mockData.pacientes.push(pacienteData);
+            
+            // Também adicionar à estrutura simplificada para compatibilidade com agendamentos
+            const pacienteSimplificado = {
+                id: pacienteData.id,
+                name: pacienteData.nome,
+                birthdate: pacienteData.data_nascimento,
+                diagnosis: pacienteData.diagnostico_principal
+            };
+            
+            // Verificar se já existe na estrutura simplificada, se não adicionar
+            const jaExisteSimplificado = mockData.pacientes.find(p => p.name === pacienteSimplificado.name);
+            if (!jaExisteSimplificado) {
+                // Inserir no início da array para aparecer primeiro
+                mockData.pacientes.unshift(pacienteSimplificado);
+            }
+            
+            showToast('Paciente cadastrado com sucesso!');
+            navigateTo('pacientes');
+        }
+        
+        function validarPacienteData(data) {
+            const errors = [];
+            
+            // Validações obrigatórias
+            if (!data.nome || data.nome.trim().length < 3) {
+                errors.push('Nome deve ter pelo menos 3 caracteres');
+            }
+            
+            if (!data.cpf || !validarCPF(data.cpf)) {
+                errors.push('CPF inválido');
+            }
+            
+            if (!data.data_nascimento) {
+                errors.push('Data de nascimento é obrigatória');
+            }
+            
+            if (!data.sexo) {
+                errors.push('Sexo é obrigatório');
+            }
+            
+            if (!data.telefone || data.telefone.length < 14) {
+                errors.push('Telefone inválido');
+            }
+            
+            if (!data.email_responsavel || !validarEmail(data.email_responsavel)) {
+                errors.push('Email do responsável inválido');
+            }
+            
+            if (!data.responsavel.nome || data.responsavel.nome.trim().length < 3) {
+                errors.push('Nome do responsável deve ter pelo menos 3 caracteres');
+            }
+            
+            if (!data.responsavel.cpf || !validarCPF(data.responsavel.cpf)) {
+                errors.push('CPF do responsável inválido');
+            }
+            
+            if (!data.diagnostico_principal || data.diagnostico_principal.trim().length < 3) {
+                errors.push('Diagnóstico principal é obrigatório');
+            }
+            
+            if (!data.tipo_terapia) {
+                errors.push('Tipo de terapia é obrigatório');
+            }
+            
+            if (!data.frequencia_recomendada) {
+                errors.push('Frequência recomendada é obrigatória');
+            }
+            
+            if (errors.length > 0) {
+                alert('Erros no formulário:\n\n' + errors.join('\n'));
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function validarCPF(cpf) {
+            cpf = cpf.replace(/\D/g, '');
+            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+            
+            let sum = 0;
+            for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
+            let digit1 = 11 - (sum % 11);
+            if (digit1 > 9) digit1 = 0;
+            
+            sum = 0;
+            for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
+            let digit2 = 11 - (sum % 11);
+            if (digit2 > 9) digit2 = 0;
+            
+            return digit1 === parseInt(cpf[9]) && digit2 === parseInt(cpf[10]);
+        }
+        
+        function validarEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // NOVO: Funções para a visão de Terapeutas
+        function viewTerapeutaAgenda(terapeutaId) {
+            appState.selectedTerapeutaId = terapeutaId;
+            document.getElementById('main-content').innerHTML = renderTerapeutasView();
+            lucide.createIcons();
+        }
+
+        function viewAllTerapeutas() {
+            appState.selectedTerapeutaId = null;
+            document.getElementById('main-content').innerHTML = renderTerapeutasView();
+            lucide.createIcons();
+        }
+
+        // 5. FUNÇÕES UTILITÁRIAS
+        // ========================
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.remove('translate-x-[120%]');
+            setTimeout(() => { toast.classList.add('translate-x-[120%]'); }, 3000);
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+[
+  {
+    "id": 201,
+    "nome": "João Miguel Silva Santos",
+    "cpf": "123.456.789-01",
+    "data_nascimento": "2015-05-20",
+    "sexo": "Masculino",
+    "endereco": {
+      "rua": "Rua das Flores, 123",
+      "bairro": "Vila Madalena",
+      "cidade": "São Paulo",
+      "cep": "05435-020"
+    },
+    "telefone": "(11) 91234-5678",
+    "email_responsavel": "maria.silva@email.com",
+    "responsavel": {
+      "nome": "Maria Silva Santos",
+      "cpf": "987.654.321-01",
+      "parentesco": "Mãe"
+    },
+    "diagnostico_principal": "TDAH (Transtorno do Déficit de Atenção com Hiperatividade)",
+    "diagnosticos_secundarios": ["Transtorno Opositor Desafiador"],
+    "medicacoes": ["Ritalina 10mg - 1x ao dia"],
+    "alergias": ["Nenhuma conhecida"],
+    "tipo_terapia": "ABA",
+    "frequencia_recomendada": "2x por semana",
+    "observacoes": "Gosta muito de carrinhos e super-heróis. Responde bem a reforços visuais. Tem dificuldade com transições.",
+    "preferencias": ["Brinquedos de encaixe", "Histórias de super-heróis", "Atividades motoras"],
+    "gatilhos": ["Barulhos altos", "Mudanças bruscas de rotina"],
+    "estrategias_eficazes": ["Cronograma visual", "Pausas regulares", "Elogios específicos"],
+    "escola": "Escola Municipal João de Barro",
+    "status": "ativo"
+  },
+  {
+    "id": 202,
+    "nome": "Maria Eduarda Oliveira Costa",
+    "cpf": "234.567.890-12",
+    "data_nascimento": "2017-02-10",
+    "sexo": "Feminino",
+    "endereco": {
+      "rua": "Av. Paulista, 456",
+      "bairro": "Bela Vista",
+      "cidade": "São Paulo",
+      "cep": "01310-100"
+    },
+    "telefone": "(11) 92345-6789",
+    "email_responsavel": "carlos.oliveira@email.com",
+    "responsavel": {
+      "nome": "Carlos Eduardo Oliveira",
+      "cpf": "876.543.210-98",
+      "parentesco": "Pai"
+    },
+    "diagnostico_principal": "TEA - Transtorno do Espectro Autista (Nível 2)",
+    "diagnosticos_secundarios": ["Atraso no desenvolvimento da linguagem"],
+    "medicacoes": ["Nenhuma"],
+    "alergias": ["Lactose"],
+    "tipo_terapia": "Fonoaudiologia",
+    "frequencia_recomendada": "3x por semana",
+    "observacoes": "Muito sensível a texturas. Gosta de atividades repetitivas e música clássica. Tem excelente memória visual.",
+    "preferencias": ["Quebra-cabeças", "Música clássica", "Livros com figuras"],
+    "gatilhos": ["Texturas ásperas", "Ambientes muito iluminados", "Multidões"],
+    "estrategias_eficazes": ["Comunicação por imagens", "Rotinas estruturadas", "Ambiente calmo"],
+    "escola": "APAE São Paulo",
+    "status": "ativo"
+  },
+  {
+    "id": 203,
+    "nome": "Pedro Henrique Alves Lima",
+    "cpf": "345.678.901-23",
+    "data_nascimento": "2016-11-30",
+    "sexo": "Masculino",
+    "endereco": {
+      "rua": "Rua Augusta, 789",
+      "bairro": "Consolação",
+      "cidade": "São Paulo",
+      "cep": "01305-000"
+    },
+    "telefone": "(11) 93456-7890",
+    "email_responsavel": "ana.lima@email.com",
+    "responsavel": {
+      "nome": "Ana Carolina Alves Lima",
+      "cpf": "765.432.109-87",
+      "parentesco": "Mãe"
+    },
+    "diagnostico_principal": "Transtorno de Ansiedade de Separação",
+    "diagnosticos_secundarios": ["Fobia específica (escuro)"],
+    "medicacoes": ["Nenhuma"],
+    "alergias": ["Amendoim"],
+    "tipo_terapia": "Psicoterapia Individual",
+    "frequencia_recomendada": "1x por semana",
+    "observacoes": "Muito apegado à mãe. Chora facilmente quando separado dos cuidadores. Gosta de desenhar e brincar de massinha.",
+    "preferencias": ["Desenho", "Massinha de modelar", "Histórias infantis"],
+    "gatilhos": ["Separação da mãe", "Escuro", "Pessoas desconhecidas"],
+    "estrategias_eficazes": ["Objetos transicionais", "Técnicas de respiração simples", "Gradual exposição"],
+    "escola": "Colégio Objetivo",
+    "status": "ativo"
+  },
+  {
+    "id": 204,
+    "nome": "Sofia Beatriz Fernandes",
+    "cpf": "456.789.012-34",
+    "data_nascimento": "2018-08-15",
+    "sexo": "Feminino",
+    "endereco": {
+      "rua": "Rua Haddock Lobo, 321",
+      "bairro": "Jardins",
+      "cidade": "São Paulo",
+      "cep": "01414-001"
+    },
+    "telefone": "(11) 94567-8901",
+    "email_responsavel": "lucia.fernandes@email.com",
+    "responsavel": {
+      "nome": "Lúcia Fernandes Santos",
+      "cpf": "654.321.098-76",
+      "parentesco": "Mãe"
+    },
+    "diagnostico_principal": "Atraso Global do Desenvolvimento",
+    "diagnosticos_secundarios": ["Dificuldades motoras"],
+    "medicacoes": ["Suplemento vitamínico"],
+    "alergias": ["Nenhuma conhecida"],
+    "tipo_terapia": "Terapia Ocupacional",
+    "frequencia_recomendada": "2x por semana",
+    "observacoes": "Muito carinhosa e sociável. Tem dificuldades com coordenação motora fina. Adora música e dança.",
+    "preferencias": ["Música", "Dança", "Brinquedos coloridos"],
+    "gatilhos": ["Atividades muito complexas", "Pressa excessiva"],
+    "estrategias_eficazes": ["Quebrar tarefas em passos pequenos", "Usar música como facilitador", "Elogios constantes"],
+    "escola": "Escola Infantil Sorriso",
+    "status": "ativo"
+  },
+  {
+    "id": 205,
+    "nome": "Gabriel Augusto Santos",
+    "cpf": "567.890.123-45",
+    "data_nascimento": "2014-03-22",
+    "sexo": "Masculino",
+    "endereco": {
+      "rua": "Av. Rebouças, 987",
+      "bairro": "Pinheiros",
+      "cidade": "São Paulo",
+      "cep": "05402-000"
+    },
+    "telefone": "(11) 95678-9012",
+    "email_responsavel": "marcos.santos@email.com",
+    "responsavel": {
+      "nome": "Marcos Antonio Santos",
+      "cpf": "543.210.987-65",
+      "parentesco": "Pai"
+    },
+    "diagnostico_principal": "TEA - Transtorno do Espectro Autista (Nível 1)",
+    "diagnosticos_secundarios": ["Síndrome de Asperger"],
+    "medicacoes": ["Nenhuma"],
+    "alergias": ["Corante alimentar"],
+    "tipo_terapia": "ABA",
+    "frequencia_recomendada": "2x por semana",
+    "observacoes": "Muito inteligente e verbal. Obsessão por dinossauros. Dificuldade em interações sociais e reconhecimento de emoções.",
+    "preferencias": ["Dinossauros", "Documentários", "Jogos de lógica"],
+    "gatilhos": ["Interrupções em suas atividades", "Sarcasmo", "Ambiguidade"],
+    "estrategias_eficazes": ["Instruções claras e diretas", "Interesse especial como motivador", "Preparação para mudanças"],
+    "escola": "Colégio Anglo",
+    "status": "ativo"
+  },
+  {
+    "id": 206,
+    "nome": "Isabella Rosa Martins",
+    "cpf": "678.901.234-56",
+    "data_nascimento": "2019-01-08",
+    "sexo": "Feminino",
+    "endereco": {
+      "rua": "Rua Oscar Freire, 654",
+      "bairro": "Jardins",
+      "cidade": "São Paulo",
+      "cep": "01426-001"
+    },
+    "telefone": "(11) 96789-0123",
+    "email_responsavel": "patricia.martins@email.com",
+    "responsavel": {
+      "nome": "Patrícia Rosa Martins",
+      "cpf": "432.109.876-54",
+      "parentesco": "Mãe"
+    },
+    "diagnostico_principal": "Transtorno da Linguagem",
+    "diagnosticos_secundarios": ["Apraxia da fala"],
+    "medicacoes": ["Nenhuma"],
+    "alergias": ["Chocolate"],
+    "tipo_terapia": "Fonoaudiologia",
+    "frequencia_recomendada": "3x por semana",
+    "observacoes": "Muito expressiva corporalmente. Usa gestos para comunicar. Compreende bem mas tem dificuldade para falar.",
+    "preferencias": ["Bonecas", "Histórias com figuras", "Brincadeiras de imitação"],
+    "gatilhos": ["Pressão para falar", "Pressa nas atividades"],
+    "estrategias_eficazes": ["Comunicação alternativa", "Paciência", "Modelagem da fala"],
+    "escola": "Berçário Pequeno Príncipe",
+    "status": "ativo"
+  },
+  {
+    "id": 207,
+    "nome": "Lucas Rafael Pereira",
+    "cpf": "789.012.345-67",
+    "data_nascimento": "2015-12-03",
+    "sexo": "Masculino",
+    "endereco": {
+      "rua": "Rua Teodoro Sampaio, 147",
+      "bairro": "Pinheiros",
+      "cidade": "São Paulo",
+      "cep": "05405-000"
+    },
+    "telefone": "(11) 97890-1234",
+    "email_responsavel": "fernanda.pereira@email.com",
+    "responsavel": {
+      "nome": "Fernanda Cristina Pereira",
+      "cpf": "321.098.765-43",
+      "parentesco": "Mãe"
+    },
+    "diagnostico_principal": "Transtorno do Processamento Sensorial",
+    "diagnosticos_secundarios": ["Hiperatividade"],
+    "medicacoes": ["Nenhuma"],
+    "alergias": ["Nenhuma conhecida"],
+    "tipo_terapia": "Psicomotricidade",
+    "frequencia_recomendada": "2x por semana",
+    "observacoes": "Muito ativo e energético. Busca estímulos sensoriais intensos. Gosta de atividades físicas e movimento.",
+    "preferencias": ["Pular", "Escalar", "Brinquedos táteis"],
+    "gatilhos": ["Ambientes muito calmos", "Atividades sedentárias prolongadas"],
+    "estrategias_eficazes": ["Quebras para movimento", "Atividades sensoriais", "Exercícios de propriocepção"],
+    "escola": "Escola Adventista",
+    "status": "ativo"
+  }
+]
