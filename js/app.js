@@ -35,9 +35,25 @@ class Application {
     setupEventListeners() {
         // Navigation handling
         document.addEventListener('click', (e) => {
-            if (e.target.matches('[data-navigate]')) {
+            // Find the navigation element, either direct target or parent
+            const navElement = e.target.closest('[data-navigate]');
+            if (navElement) {
                 e.preventDefault();
-                this.navigateTo(e.target.dataset.navigate);
+                e.stopPropagation();
+                const targetView = navElement.dataset.navigate;
+                if (targetView) {
+                    this.navigateTo(targetView);
+                    // Close mobile menu if in mobile view
+                    if (window.innerWidth < 768) {
+                        const closeMobileMenu = () => {
+                            const menu = document.getElementById('mobile-menu');
+                            const overlay = document.querySelector('.mobile-menu-overlay');
+                            menu?.classList.add('hidden');
+                            overlay?.classList.add('hidden');
+                        };
+                        closeMobileMenu();
+                    }
+                }
             }
         });
 
@@ -100,12 +116,6 @@ class Application {
             }
         });
 
-        // Close on navigation
-        document.addEventListener('click', (e) => {
-            if (e.target.matches('[data-navigate]') && window.innerWidth < 768) {
-                closeMobileMenu();
-            }
-        });
     }
 
     // Authentication
@@ -337,6 +347,13 @@ class Application {
 
     // Navigation
     navigateTo(view) {
+        if (this.currentView === view) return;
+        
+        // Debounce navigation to prevent multiple clicks
+        if (this.navigationTimeout) {
+            clearTimeout(this.navigationTimeout);
+        }
+        
         this.currentView = view;
         
         const viewTitles = {
@@ -354,69 +371,125 @@ class Application {
         this.updateActiveNavItem();
         
         const contentArea = document.getElementById('main-content');
-        Utils.showLoading(true);
         
-        // Small delay for better UX
-        setTimeout(() => {
-            this.renderView(view, contentArea);
-            Utils.showLoading(false);
-            lucide.createIcons();
+        this.navigationTimeout = setTimeout(async () => {
+            console.log('🧭 [NAVIGATION] Navigating to:', view);
+            Utils.showLoading(true);
             
-            // Initialize form if it's the new patient view
-            if (view === 'novo-paciente') {
-                this.initializeNovoPacienteForm();
+            try {
+                await this.renderView(view, contentArea);
+                lucide.createIcons();
+                
+                // Initialize form if it's the new patient view
+                if (view === 'novo-paciente') {
+                    this.initializeNovoPacienteForm();
+                }
+                
+                console.log('✅ [NAVIGATION] Successfully navigated to:', view);
+            } catch (error) {
+                console.error('❌ [NAVIGATION] Error navigating to:', view, error);
+            } finally {
+                Utils.showLoading(false);
             }
-        }, 200);
+        }, 100); // Reduced delay for better responsiveness
     }
 
-    renderView(view, container) {
-        switch (view) {
-            case 'dashboard':
-                container.innerHTML = this.renderDashboard();
-                break;
+    async renderView(view, container) {
+        // Show loading state immediately
+        container.innerHTML = this.renderLoadingState(`Carregando ${this.getViewTitle(view)}...`);
+        
+        try {
+            switch (view) {
+                case 'dashboard':
+                    container.innerHTML = await this.renderDashboard();
+                    break;
             case 'calendario':
                 container.innerHTML = '<div id="calendar-container"></div>';
-                calendarManager.render();
+                await calendarManager.render();
                 break;
             case 'pacientes':
-                container.innerHTML = this.renderPacientesView();
+                container.innerHTML = await this.renderPacientesView();
                 break;
             case 'novo-paciente':
                 container.innerHTML = this.renderNovoPacienteView();
                 break;
             case 'terapeutas':
-                container.innerHTML = this.renderTerapeutasView();
+                container.innerHTML = await this.renderTerapeutasView();
                 break;
             case 'meus-pacientes':
-                container.innerHTML = this.renderMeusPacientesView();
+                container.innerHTML = await this.renderMeusPacientesView();
                 break;
             case 'disponibilidades':
-                container.innerHTML = this.renderDisponibilidadesView();
+                container.innerHTML = await this.renderDisponibilidadesView();
                 break;
             case 'relatorios':
-                container.innerHTML = this.renderRelatoriosView();
+                container.innerHTML = await this.renderRelatoriosView();
                 break;
             default:
                 container.innerHTML = '<div class="text-center py-12"><p class="text-slate-500">Página não encontrada</p></div>';
         }
-    }
-
-    // View renderers
-    renderDashboard() {
-        const stats = dataManager.getEstatisticas();
-        const role = this.currentUser.role;
-
-        if (role === 'terapeuta') {
-            return this.renderTerapeutaDashboard(stats);
-        } else {
-            return this.renderSupervisorDashboard(stats);
+        } catch (error) {
+            console.error('❌ [ERROR] Error rendering view:', view, error);
+            container.innerHTML = this.renderErrorView(`Erro ao carregar ${this.getViewTitle(view)}`, error.message);
         }
     }
 
-    renderTerapeutaDashboard(stats) {
-        const myAppointments = dataManager.getAgendamentos({ 
+    renderLoadingState(message = 'Carregando...') {
+        return `
+            <div class="card">
+                <div class="card-body text-center py-12">
+                    <div class="w-12 h-12 mx-auto mb-4">
+                        <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+                    </div>
+                    <p class="text-slate-600">${message}</p>
+                </div>
+            </div>
+        `;
+    }
+
+    getViewTitle(view) {
+        const titles = {
+            'dashboard': 'dashboard',
+            'pacientes': 'pacientes',
+            'novo-paciente': 'novo paciente',
+            'terapeutas': 'terapeutas',
+            'calendario': 'calendário',
+            'relatorios': 'relatórios',
+            'perfil': 'perfil',
+            'disponibilidades': 'disponibilidades',
+            'meus-pacientes': 'meus pacientes'
+        };
+        return titles[view] || 'página';
+    }
+
+    // Patient actions (placeholders for now)
+    openPatientProfileModal(patientId) {
+        console.log('👤 [ACTION] Opening patient profile modal for ID:', patientId);
+        Utils.showToast('Funcionalidade em desenvolvimento', 'info');
+    }
+
+    schedulePatient(patientId) {
+        console.log('📅 [ACTION] Opening scheduler for patient ID:', patientId);
+        this.navigateTo('calendario');
+    }
+
+    // View renderers
+    async renderDashboard() {
+        const role = this.currentUser.role;
+
+        if (role === 'terapeuta') {
+            return await this.renderTerapeutaDashboard();
+        } else {
+            return await this.renderSupervisorDashboard();
+        }
+    }
+
+    async renderTerapeutaDashboard() {
+        const stats = await dataManager.getEstatisticas();
+        const allAppointments = await dataManager.getAgendamentos({ 
             terapeutaId: this.currentUser.data.id 
-        }).filter(a => new Date(a.datetime) >= new Date().setHours(0,0,0,0));
+        });
+        const myAppointments = allAppointments.filter(a => new Date(a.datetime) >= new Date().setHours(0,0,0,0));
         
         const nextAppointments = myAppointments
             .filter(a => a.status === 'agendado')
@@ -536,13 +609,17 @@ class Application {
         `;
     }
 
-    renderSupervisorDashboard(stats) {
-        const recentAppointments = dataManager.getAgendamentos()
+    async renderSupervisorDashboard() {
+        const stats = await dataManager.getEstatisticas();
+        const allAppointments = await dataManager.getAgendamentos();
+        const recentAppointments = allAppointments
             .sort((a, b) => b.datetime - a.datetime)
             .slice(0, 5);
 
-        const patientsWithoutSchedule = dataManager.getPacientes().filter(p => 
-            !dataManager.getAgendamentos({ pacienteId: p.id, status: 'agendado' }).length
+        const allPatients = await dataManager.getPacientes();
+        const scheduledPatients = await dataManager.getAgendamentos({ status: 'agendado' });
+        const patientsWithoutSchedule = allPatients.filter(p => 
+            !scheduledPatients.some(a => a.pacienteId === p.id)
         );
 
         return `
@@ -645,7 +722,7 @@ class Application {
                                         </div>
                                         <div class="flex-1">
                                             <p class="text-sm font-medium">${patient.nome}</p>
-                                            <p class="text-xs text-slate-500">${therapist.name} • ${Utils.getRelativeTime(app.datetime)}</p>
+                                            <p class="text-xs text-slate-500">${therapist.nome} • ${Utils.getRelativeTime(app.datetime)}</p>
                                         </div>
                                         <span class="text-xs px-2 py-1 rounded-full" style="background-color: ${Utils.getStatusColor(app.status)}20; color: ${Utils.getStatusColor(app.status)}">
                                             ${app.status}
@@ -660,21 +737,17 @@ class Application {
         `;
     }
 
-    renderPacientesView() {
-        // Load patients from API if not already loaded
-        dataManager.getPacientes().then(patients => {
-            if (this.currentView === 'pacientes') {
-                // Re-render if we're still on the patients view
-                setTimeout(() => {
-                    this.renderView('pacientes', document.getElementById('main-content'));
-                    lucide.createIcons();
-                }, 100);
-            }
-        }).catch(error => {
-            console.error('Error loading patients:', error);
-        });
-
-        const patients = dataManager.data.pacientes || [];
+    async renderPacientesView() {
+        console.log('🔄 [DEBUG] Starting renderPacientesView');
+        
+        let patients = [];
+        try {
+            patients = await dataManager.getPacientes();
+            console.log('👥 [DEBUG] Loaded patients:', patients.length, 'patients');
+        } catch (error) {
+            console.error('❌ [ERROR] Error loading patients:', error);
+            return this.renderErrorView('Erro ao carregar pacientes', error.message);
+        }
         
         return `
             <div class="card">
@@ -697,50 +770,185 @@ class Application {
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${patients.map(patient => {
-                            const appointments = dataManager.getAgendamentos({ pacienteId: patient.id });
-                            const nextAppointment = appointments
-                                .filter(a => a.status === 'agendado' && new Date(a.datetime) > new Date())
-                                .sort((a, b) => a.datetime - b.datetime)[0];
-                            
-                            return `
-                                <div class="patient-card">
-                                    <div class="flex items-start gap-3 mb-3">
-                                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
-                                            ${Utils.getInitials(patient.nome)}
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <h4 class="font-semibold truncate">${patient.nome}</h4>
-                                            <p class="text-sm text-slate-500">${Utils.calculateAge(patient.data_nascimento)} anos</p>
-                                            <p class="text-xs text-slate-400">${patient.diagnostico_principal}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    ${nextAppointment ? `
-                                        <div class="text-xs text-green-600 mb-3">
-                                            <i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>
-                                            Próxima: ${Utils.formatDateTime(nextAppointment.datetime)}
-                                        </div>
-                                    ` : `
-                                        <div class="text-xs text-red-600 mb-3">
-                                            <i data-lucide="calendar-x" class="w-3 h-3 inline mr-1"></i>
-                                            Sem agendamentos
-                                        </div>
-                                    `}
-                                    
-                                    <div class="flex gap-2">
-                                        <button onclick="openPatientProfileModal(${patient.id})" class="flex-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm rounded-md transition-colors">
-                                            Ver Perfil
-                                        </button>
-                                        <button onclick="schedulePatient(${patient.id})" class="flex-1 px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-sm rounded-md transition-colors">
-                                            Agendar
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="patients-grid">
+                        ${await this.renderPatientsGrid(patients)}
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async renderPatientsGrid(patients) {
+        console.log('🏗️ [DEBUG] Building patients grid for', patients.length, 'patients');
+        
+        if (!patients || patients.length === 0) {
+            return '<div class="col-span-full text-center text-slate-500 py-8">Nenhum paciente encontrado</div>';
+        }
+
+        // ⚡ OTIMIZAÇÃO: Buscar todos os agendamentos de uma só vez
+        let allAppointments = [];
+        try {
+            console.log('🚀 [OPTIMIZATION] Fetching all appointments at once');
+            allAppointments = await dataManager.getAgendamentos();
+            console.log('📅 [DEBUG] Total appointments loaded:', allAppointments.length);
+        } catch (error) {
+            console.error('❌ [ERROR] Error loading all appointments:', error);
+            // Continue sem agendamentos
+        }
+
+        const patientCards = [];
+        const now = new Date();
+        
+        for (const patient of patients) {
+            console.log('🔍 [DEBUG] Processing patient:', patient.id, patient.nome);
+            try {
+                // Filtrar agendamentos localmente ao invés de fazer chamada API
+                const patientAppointments = allAppointments.filter(apt => apt.pacienteId === patient.id);
+                const nextAppointment = patientAppointments
+                    .filter(a => a.status === 'agendado' && new Date(a.datetime) > now)
+                    .sort((a, b) => a.datetime - b.datetime)[0];
+                    
+                console.log('⏰ [DEBUG] Patient', patient.id, 'has', patientAppointments.length, 'appointments, next:', !!nextAppointment);
+                
+                const card = this.renderPatientCardSync(patient, nextAppointment);
+                patientCards.push(card);
+            } catch (error) {
+                console.error('❌ [ERROR] Error rendering card for patient', patient.id, ':', error);
+                patientCards.push(this.renderPatientCardError(patient, error.message));
+            }
+        }
+        
+        return patientCards.join('');
+    }
+
+    renderPatientCardSync(patient, nextAppointment = null) {
+        return `
+            <div class="patient-card">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                        ${Utils.getInitials(patient.nome)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold truncate">${patient.nome}</h4>
+                        <p class="text-sm text-slate-500">${Utils.calculateAge(patient.data_nascimento)} anos</p>
+                        <p class="text-xs text-slate-400">${patient.diagnostico_principal}</p>
+                    </div>
+                </div>
+                
+                ${nextAppointment ? `
+                    <div class="text-xs text-green-600 mb-3">
+                        <i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>
+                        Próxima: ${Utils.formatDateTime(nextAppointment.datetime)}
+                    </div>
+                ` : `
+                    <div class="text-xs text-red-600 mb-3">
+                        <i data-lucide="calendar-x" class="w-3 h-3 inline mr-1"></i>
+                        Sem agendamentos
+                    </div>
+                `}
+                
+                <div class="flex gap-2">
+                    <button onclick="App.openPatientProfileModal(${patient.id})" class="flex-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm rounded-md transition-colors">
+                        Ver Perfil
+                    </button>
+                    <button onclick="App.schedulePatient(${patient.id})" class="flex-1 px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-sm rounded-md transition-colors">
+                        Agendar
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    async renderPatientCard(patient) {
+        let nextAppointment = null;
+        
+        try {
+            const appointments = await dataManager.getAgendamentos({ pacienteId: patient.id });
+            console.log('📅 [DEBUG] Appointments for patient', patient.id, ':', typeof appointments, Array.isArray(appointments));
+            
+            if (Array.isArray(appointments)) {
+                nextAppointment = appointments
+                    .filter(a => a.status === 'agendado' && new Date(a.datetime) > new Date())
+                    .sort((a, b) => a.datetime - b.datetime)[0];
+                console.log('⏰ [DEBUG] Next appointment for patient', patient.id, ':', nextAppointment);
+            } else {
+                console.error('❌ [ERROR] appointments is not an array for patient', patient.id, ':', typeof appointments);
+            }
+        } catch (error) {
+            console.error('❌ [ERROR] Error getting appointments for patient', patient.id, ':', error.message);
+            // Continue rendering card without appointment info
+        }
+
+        return `
+            <div class="patient-card">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                        ${Utils.getInitials(patient.nome)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold truncate">${patient.nome}</h4>
+                        <p class="text-sm text-slate-500">${Utils.calculateAge(patient.data_nascimento)} anos</p>
+                        <p class="text-xs text-slate-400">${patient.diagnostico_principal}</p>
+                    </div>
+                </div>
+                
+                ${nextAppointment ? `
+                    <div class="text-xs text-green-600 mb-3">
+                        <i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>
+                        Próxima: ${Utils.formatDateTime(nextAppointment.datetime)}
+                    </div>
+                ` : `
+                    <div class="text-xs text-red-600 mb-3">
+                        <i data-lucide="calendar-x" class="w-3 h-3 inline mr-1"></i>
+                        Sem agendamentos
+                    </div>
+                `}
+                
+                <div class="flex gap-2">
+                    <button onclick="App.openPatientProfileModal(${patient.id})" class="flex-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm rounded-md transition-colors">
+                        Ver Perfil
+                    </button>
+                    <button onclick="App.schedulePatient(${patient.id})" class="flex-1 px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-sm rounded-md transition-colors">
+                        Agendar
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    renderPatientCardError(patient, errorMessage) {
+        return `
+            <div class="patient-card border-red-200">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold">
+                        ${Utils.getInitials(patient.nome)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-semibold truncate">${patient.nome}</h4>
+                        <p class="text-sm text-slate-500">${Utils.calculateAge(patient.data_nascimento)} anos</p>
+                        <p class="text-xs text-red-500">Erro: ${errorMessage}</p>
+                    </div>
+                </div>
+                <div class="text-xs text-red-600 mb-3">
+                    <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i>
+                    Erro ao carregar agendamentos
+                </div>
+            </div>
+        `;
+    }
+
+    renderErrorView(title, message) {
+        return `
+            <div class="card">
+                <div class="card-body text-center py-12">
+                    <div class="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-4">
+                        <i data-lucide="alert-circle" class="w-8 h-8 text-red-500"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-800 mb-2">${title}</h3>
+                    <p class="text-slate-600 mb-4">${message}</p>
+                    <button onclick="location.reload()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg">
+                        Recarregar Página
+                    </button>
                 </div>
             </div>
         `;
@@ -936,8 +1144,9 @@ class Application {
         `;
     }
 
-    renderTerapeutasView() {
-        const therapists = dataManager.getTerapeutas();
+    async renderTerapeutasView() {
+        const therapists = await dataManager.getTerapeutas();
+        const appointments = await dataManager.getAgendamentos();
         
         return `
             <div class="card">
@@ -948,7 +1157,6 @@ class Application {
                 <div class="card-body">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         ${therapists.map(therapist => {
-                            const appointments = dataManager.getAgendamentos({ terapeutaId: therapist.id });
                             const todayAppointments = appointments.filter(a => {
                                 const today = new Date();
                                 const appDate = new Date(a.datetime);
@@ -958,11 +1166,11 @@ class Application {
                             return `
                                 <div class="therapist-card">
                                     <div class="flex items-center gap-4 mb-4">
-                                        <img src="${therapist.avatar}" alt="${therapist.name}" class="w-16 h-16 rounded-full border-3 border-green-200">
+                                        <img src="${therapist.avatar}" alt="${therapist.nome}" class="w-16 h-16 rounded-full border-3 border-green-200">
                                         <div>
-                                            <h4 class="font-bold text-lg">${therapist.name}</h4>
+                                            <h4 class="font-bold text-lg">${therapist.nome}</h4>
                                             <p class="text-sm text-slate-600">${therapist.crf}</p>
-                                            <p class="text-xs text-green-600">${therapist.status}</p>
+                                            <p class="text-xs text-green-600">Ativo</p>
                                         </div>
                                     </div>
                                     
@@ -998,13 +1206,13 @@ class Application {
         `;
     }
 
-    renderMeusPacientesView() {
-        const myAppointments = dataManager.getAgendamentos({ 
+    async renderMeusPacientesView() {
+        const myAppointments = await dataManager.getAgendamentos({ 
             terapeutaId: this.currentUser.data.id 
         });
         
         const myPatientIds = [...new Set(myAppointments.map(a => a.pacienteId))];
-        const myPatients = myPatientIds.map(id => dataManager.getPacienteById(id));
+        const myPatients = await Promise.all(myPatientIds.map(id => dataManager.getPacienteById(id)));
 
         return `
             <div class="card">
@@ -1067,8 +1275,8 @@ class Application {
         `;
     }
 
-    renderDisponibilidadesView() {
-        const myAvailabilities = dataManager.getDisponibilidades({ 
+    async renderDisponibilidadesView() {
+        const myAvailabilities = await dataManager.getDisponibilidades({ 
             terapeutaId: this.currentUser.data.id 
         });
 
@@ -1124,9 +1332,22 @@ class Application {
         `;
     }
 
-    renderRelatoriosView() {
+    async renderRelatoriosView() {
+        console.log('📊 [DEBUG] Starting renderRelatoriosView');
+        
         const stats = dataManager.getEstatisticas();
-        const appointments = dataManager.getAgendamentos();
+        let appointments = [];
+        let therapists = [];
+        
+        try {
+            appointments = await dataManager.getAgendamentos();
+            therapists = await dataManager.getTerapeutas();
+            console.log('📅 [DEBUG] Loaded appointments for reports:', appointments.length);
+            console.log('👥 [DEBUG] Loaded therapists for reports:', therapists.length);
+        } catch (error) {
+            console.error('❌ [ERROR] Error loading data for reports:', error);
+            return this.renderErrorView('Erro ao carregar relatórios', error.message);
+        }
         
         // Group appointments by month
         const appointmentsByMonth = Utils.groupBy(appointments, (apt) => {
@@ -1165,7 +1386,7 @@ class Application {
                         </div>
                         <div class="card-body">
                             <div class="space-y-3">
-                                ${dataManager.getTerapeutas().map(therapist => {
+                                ${therapists.map(therapist => {
                                     const therapistAppointments = appointments.filter(a => a.terapeutaId === therapist.id);
                                     const realized = therapistAppointments.filter(a => a.status === 'realizado').length;
                                     const total = therapistAppointments.length;
@@ -1176,7 +1397,7 @@ class Application {
                                             <div class="flex items-center gap-3">
                                                 <img src="${therapist.avatar}" class="w-10 h-10 rounded-full">
                                                 <div>
-                                                    <p class="font-semibold">${therapist.name}</p>
+                                                    <p class="font-semibold">${therapist.nome}</p>
                                                     <p class="text-sm text-slate-500">${realized}/${total} sessões</p>
                                                 </div>
                                             </div>
@@ -1293,7 +1514,7 @@ class Application {
                         data: Utils.formatDate(a.datetime),
                         horario: Utils.formatTime(a.datetime),
                         paciente: patient?.nome,
-                        terapeuta: therapist?.name,
+                        terapeuta: therapist?.nome,
                         tipo_terapia: a.tipoTerapia,
                         local: a.local,
                         status: a.status,
@@ -1343,7 +1564,7 @@ class Application {
         this.setupFormMasks();
         
         // Submit do formulário
-        form.addEventListener('submit', (e) => this.handleNovoPacienteSubmit(e));
+        form.addEventListener('submit', async (e) => this.handleNovoPacienteSubmit(e));
     }
 
     setupFormMasks() {
@@ -1374,7 +1595,7 @@ class Application {
         });
     }
 
-    handleNovoPacienteSubmit(e) {
+    async handleNovoPacienteSubmit(e) {
         e.preventDefault();
         
         const formData = new FormData(e.target);

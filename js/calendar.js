@@ -45,16 +45,17 @@ class CalendarManager {
         });
     }
 
-    render() {
+    async render() {
         const container = document.getElementById('calendar-container');
         if (!container) return;
 
-        container.innerHTML = this.getCalendarHTML();
-        this.renderCalendarEvents();
+        const html = await this.getCalendarHTML();
+        container.innerHTML = html;
+        await this.renderCalendarEvents();
         lucide.createIcons();
     }
 
-    getCalendarHTML() {
+    async getCalendarHTML() {
         const monthYear = this.currentDate.toLocaleDateString('pt-BR', {
             month: 'long',
             year: 'numeric'
@@ -97,8 +98,8 @@ class CalendarManager {
                             <div class="flex gap-2">
                                 <select name="terapeutaId" data-calendar-filter class="px-3 py-1 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500">
                                     <option value="">Todos os terapeutas</option>
-                                    ${dataManager.getTerapeutas().map(t => 
-                                        `<option value="${t.id}" ${this.filters.terapeutaId == t.id ? 'selected' : ''}>${t.name}</option>`
+                                    ${(await dataManager.getTerapeutas()).map(t => 
+                                        `<option value="${t.id}" ${this.filters.terapeutaId == t.id ? 'selected' : ''}>${t.nome}</option>`
                                     ).join('')}
                                 </select>
 
@@ -192,38 +193,43 @@ class CalendarManager {
         `;
     }
 
-    renderCalendarEvents() {
+    async renderCalendarEvents() {
         const startDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), 1);
         const endDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 0);
 
-        // Get appointments and availabilities for the current month
-        const appointments = dataManager.getAgendamentos({
-            dataInicio: startDate,
-            dataFim: endDate,
-            ...this.filters
-        });
+        try {
+            // Get appointments and availabilities for the current month
+            const [appointments, availabilities] = await Promise.all([
+                dataManager.getAgendamentos({
+                    dataInicio: startDate,
+                    dataFim: endDate,
+                    ...this.filters
+                }),
+                dataManager.getDisponibilidades({
+                    dataInicio: startDate,
+                    dataFim: endDate,
+                    ...this.filters
+                })
+            ]);
 
-        const availabilities = dataManager.getDisponibilidades({
-            dataInicio: startDate,
-            dataFim: endDate,
-            ...this.filters
-        });
-
-        // Clear existing events
-        document.querySelectorAll('.calendar-events').forEach(container => {
-            container.innerHTML = '';
-        });
-
-        // Render appointments
-        appointments.forEach(appointment => {
-            this.renderEventOnCalendar(appointment, 'appointment');
-        });
-
-        // Render availabilities (only if no therapist filter or if user is supervisor)
-        if (!this.filters.terapeutaId || (App.currentUser && App.currentUser.role === 'supervisor')) {
-            availabilities.forEach(availability => {
-                this.renderEventOnCalendar(availability, 'availability');
+            // Clear existing events
+            document.querySelectorAll('.calendar-events').forEach(container => {
+                container.innerHTML = '';
             });
+
+            // Render appointments
+            appointments.forEach(appointment => {
+                this.renderEventOnCalendar(appointment, 'appointment');
+            });
+
+            // Render availabilities (only if no therapist filter or if user is supervisor)
+            if (!this.filters.terapeutaId || (App.currentUser && App.currentUser.role === 'supervisor')) {
+                availabilities.forEach(availability => {
+                    this.renderEventOnCalendar(availability, 'availability');
+                });
+            }
+        } catch (error) {
+            console.error('❌ [CALENDAR] Error loading calendar events:', error);
         }
     }
 
@@ -301,9 +307,9 @@ class CalendarManager {
     }
 
     // Filter methods
-    updateFilter(filterName, filterValue) {
+    async updateFilter(filterName, filterValue) {
         this.filters[filterName] = filterValue || null;
-        this.renderCalendarEvents();
+        await this.renderCalendarEvents();
     }
 
     clearFilters() {

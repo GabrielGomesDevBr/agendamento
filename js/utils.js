@@ -326,9 +326,19 @@ class Utils {
     }
 
     // Array utilities
-    static groupBy(array, key) {
+    static groupBy(array, keyOrFunction) {
+        console.log('🔧 [DEBUG] groupBy called with:', typeof array, Array.isArray(array), 'length:', array?.length);
+        
+        if (!array || !Array.isArray(array)) {
+            console.error('❌ [ERROR] groupBy: array is not valid:', typeof array, array);
+            return {};
+        }
+
+        const getKey = typeof keyOrFunction === 'function' ? keyOrFunction : (item) => item[keyOrFunction];
+        
         return array.reduce((groups, item) => {
-            const group = (groups[item[key]] = groups[item[key]] || []);
+            const key = getKey(item);
+            const group = (groups[key] = groups[key] || []);
             group.push(item);
             return groups;
         }, {});

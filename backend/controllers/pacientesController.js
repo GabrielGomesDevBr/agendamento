@@ -5,10 +5,10 @@ const getAllPacientes = async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT 
-        id, nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
-        endereco, responsavel, diagnostico_principal, diagnosticos_secundarios,
-        medicacoes, alergias, tipo_terapia, frequencia_recomendada,
-        preferencias, gatilhos, estrategias_eficazes, observacoes, escola, status,
+        id, nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
+        telefone, email, nome_responsavel, contato_responsavel,
+        plano_saude, numero_carteirinha, historico_medico, status,
+        terapeuta_responsavel_id, supervisor_responsavel_id,
         created_at, updated_at
       FROM pacientes 
       ORDER BY nome ASC
@@ -35,10 +35,10 @@ const getPacienteById = async (req, res) => {
     
     const { rows } = await pool.query(`
       SELECT 
-        id, nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
-        endereco, responsavel, diagnostico_principal, diagnosticos_secundarios,
-        medicacoes, alergias, tipo_terapia, frequencia_recomendada,
-        preferencias, gatilhos, estrategias_eficazes, observacoes, escola, status,
+        id, nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
+        telefone, email, nome_responsavel, contato_responsavel,
+        plano_saude, numero_carteirinha, historico_medico, status,
+        terapeuta_responsavel_id, supervisor_responsavel_id,
         created_at, updated_at
       FROM pacientes 
       WHERE id = $1
@@ -68,10 +68,10 @@ const getPacienteById = async (req, res) => {
 const createPaciente = async (req, res) => {
   try {
     const {
-      nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
-      endereco, responsavel, diagnostico_principal, diagnosticos_secundarios,
-      medicacoes, alergias, tipo_terapia, frequencia_recomendada,
-      preferencias, gatilhos, estrategias_eficazes, observacoes, escola
+      nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
+      telefone, email, senha_hash, nome_responsavel, contato_responsavel,
+      plano_saude, numero_carteirinha, historico_medico,
+      terapeuta_responsavel_id, supervisor_responsavel_id
     } = req.body;
 
     // Verificar se CPF já existe
@@ -90,18 +90,17 @@ const createPaciente = async (req, res) => {
     // Inserir novo paciente
     const { rows } = await pool.query(`
       INSERT INTO pacientes (
-        nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
-        endereco, responsavel, diagnostico_principal, diagnosticos_secundarios,
-        medicacoes, alergias, tipo_terapia, frequencia_recomendada,
-        preferencias, gatilhos, estrategias_eficazes, observacoes, escola, status
+        nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
+        telefone, email, senha_hash, nome_responsavel, contato_responsavel,
+        plano_saude, numero_carteirinha, historico_medico, status,
+        terapeuta_responsavel_id, supervisor_responsavel_id
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
       RETURNING *
     `, [
-      nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
-      JSON.stringify(endereco), JSON.stringify(responsavel), diagnostico_principal,
-      diagnosticos_secundarios || [], medicacoes || [], alergias || [],
-      tipo_terapia, frequencia_recomendada, preferencias || [],
-      gatilhos || [], estrategias_eficazes || [], observacoes, escola, 'ativo'
+      nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
+      telefone, email, senha_hash, nome_responsavel, contato_responsavel,
+      plano_saude, numero_carteirinha, historico_medico, 'ativo',
+      terapeuta_responsavel_id, supervisor_responsavel_id
     ]);
 
     res.status(201).json({

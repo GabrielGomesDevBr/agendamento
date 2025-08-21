@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "name": "Dra. Ana Paula Sousa",
+    "nome": "Dra. Ana Paula Sousa",
     "email": "ana.sousa@clinica.com",
     "telefone": "(11) 99999-1111",
     "especialidades": ["ABA", "Terapia Ocupacional"],
@@ -18,7 +18,7 @@
   },
   {
     "id": 2,
-    "name": "Dr. Carlos Eduardo Lima",
+    "nome": "Dr. Carlos Eduardo Lima",
     "email": "carlos.lima@clinica.com",
     "telefone": "(11) 99999-2222",
     "especialidades": ["Psicoterapia Individual", "Terapia Familiar"],
@@ -35,7 +35,7 @@
   },
   {
     "id": 3,
-    "name": "Dra. Marina Santos Silva",
+    "nome": "Dra. Marina Santos Silva",
     "email": "marina.santos@clinica.com",
     "telefone": "(11) 99999-3333",
     "especialidades": ["Fonoaudiologia", "Musicoterapia"],
@@ -52,7 +52,7 @@
   },
   {
     "id": 4,
-    "name": "Dr. João Pedro Oliveira",
+    "nome": "Dr. João Pedro Oliveira",
     "email": "joao.oliveira@clinica.com",
     "telefone": "(11) 99999-4444",
     "especialidades": ["Psicomotricidade", "Terapia em Grupo"],
@@ -69,7 +69,7 @@
   },
   {
     "id": 5,
-    "name": "Dra. Fernanda Costa Reis",
+    "nome": "Dra. Fernanda Costa Reis",
     "email": "fernanda.costa@clinica.com",
     "telefone": "(11) 99999-5555",
     "especialidades": ["ABA", "Análise Funcional"],
@@ -86,7 +86,7 @@
   },
   {
     "id": 6,
-    "name": "Dra. Beatriz Almeida",
+    "nome": "Dra. Beatriz Almeida",
     "email": "beatriz.almeida@clinica.com",
     "telefone": "(11) 99999-6666",
     "especialidades": ["Terapia Ocupacional", "Integração Sensorial"],

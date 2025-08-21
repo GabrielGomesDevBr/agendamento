@@ -35,11 +35,11 @@
                 </div>
                 <p class="text-slate-500 mb-8">Sistema de Agendamento para Clínica de Terapia Infantil</p>
                 <div class="space-y-4">
-                    <button onclick="loginAs('terapeuta')" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                    <button id="login-terapeuta" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
                         <i data-lucide="user" class="w-5 h-5 inline mr-2"></i>
                         Entrar como Terapeuta
                     </button>
-                    <button onclick="loginAs('supervisor')" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
+                    <button id="login-supervisor" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500">
                         <i data-lucide="user-cog" class="w-5 h-5 inline mr-2"></i>
                         Entrar como Supervisor
                     </button>
@@ -68,7 +68,7 @@
                     <p id="sidebar-user-name" class="text-sm font-medium truncate"></p>
                     <p id="sidebar-user-role" class="text-xs text-slate-400"></p>
                 </div>
-                <button onclick="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors">
+                <button id="logout-btn" class="w-full flex items-center gap-3 px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-lg transition-colors">
                     <i data-lucide="log-out" class="w-5 h-5"></i>
                     <span>Sair</span>
                 </button>
@@ -158,19 +158,27 @@
     <script src="js/app.js"></script>
 
     <script>
-        // Global functions for onclick handlers
-        function loginAs(role) {
-            App.loginAs(role);
-        }
-
-        function logout() {
-            App.logout();
-        }
-
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async () => {
             lucide.createIcons();
             await App.init();
+            
+            // Setup event listeners for buttons
+            const loginTerapeutaBtn = document.getElementById('login-terapeuta');
+            const loginSupervisorBtn = document.getElementById('login-supervisor');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (loginTerapeutaBtn) {
+                loginTerapeutaBtn.addEventListener('click', () => App.loginAs('terapeuta'));
+            }
+            
+            if (loginSupervisorBtn) {
+                loginSupervisorBtn.addEventListener('click', () => App.loginAs('supervisor'));
+            }
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => App.logout());
+            }
         });
     </script>
 </body>

@@ -25,8 +25,8 @@ async function seedDatabase() {
     if (tiposTerapia.length > 0) {
       for (const tipo of tiposTerapia) {
         await pool.query(
-          'INSERT INTO tipos_terapia (nome, descricao, duracao_sessao, cor) VALUES ($1, $2, $3, $4)',
-          [tipo.nome, tipo.descricao, tipo.duracao_sessao || 60, tipo.cor || '#3b82f6']
+          'INSERT INTO tipos_terapia (nome, descricao, duracao_sessao, valor_sessao) VALUES ($1, $2, $3, $4)',
+          [tipo.nome, tipo.descricao, tipo.duracao_sessao || 60, tipo.valor_sessao || 150.00]
         );
       }
       console.log(`✅ ${tiposTerapia.length} tipos de terapia inseridos`);
@@ -42,8 +42,8 @@ async function seedDatabase() {
         await pool.query(
           'INSERT INTO supervisores (nome, email, senha_hash, telefone, avatar, status) VALUES ($1, $2, $3, $4, $5, $6)',
           [
-            supervisor.name,
-            supervisor.email || `${supervisor.name.toLowerCase().replace(/\\s+/g, '.')}@cliniagende.com`,
+            supervisor.nome,
+            supervisor.email || `${supervisor.nome.toLowerCase().replace(/\\s+/g, '.')}@cliniagende.com`,
             senhaHash,
             supervisor.telefone || '(11) 99999-9999',
             supervisor.avatar,
@@ -63,8 +63,8 @@ async function seedDatabase() {
         await pool.query(
           'INSERT INTO terapeutas (nome, email, senha_hash, telefone, crf, especialidades, avatar, horario_trabalho, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
           [
-            terapeuta.name,
-            terapeuta.email || `${terapeuta.name.toLowerCase().replace(/\\s+/g, '.')}@cliniagende.com`,
+            terapeuta.nome,
+            terapeuta.email || `${terapeuta.nome.toLowerCase().replace(/\\s+/g, '.')}@cliniagende.com`,
             senhaHash,
             terapeuta.telefone || '(11) 99999-9999',
             terapeuta.crf,
@@ -82,34 +82,35 @@ async function seedDatabase() {
     const pacientes = readJsonFile('pacientes.json');
     if (pacientes.length > 0) {
       for (const paciente of pacientes) {
+        const senhaHash = await bcrypt.hash(defaultPassword, 12);
         await pool.query(
           `INSERT INTO pacientes (
-            nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
-            endereco, responsavel, diagnostico_principal, diagnosticos_secundarios,
-            medicacoes, alergias, tipo_terapia, frequencia_recomendada,
-            preferencias, gatilhos, estrategias_eficazes, observacoes, escola, status
+            nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
+            telefone, email, senha_hash, nome_responsavel, contato_responsavel,
+            plano_saude, numero_carteirinha, historico_medico, status,
+            terapeuta_responsavel_id, supervisor_responsavel_id
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
           [
             paciente.nome,
-            paciente.cpf,
             paciente.data_nascimento,
-            paciente.sexo,
+            paciente.genero || paciente.sexo,
+            paciente.cpf,
+            paciente.rg,
+            paciente.endereco,
+            paciente.cidade,
+            paciente.estado,
+            paciente.cep,
             paciente.telefone,
-            paciente.email_responsavel,
-            JSON.stringify(paciente.endereco),
-            JSON.stringify(paciente.responsavel),
-            paciente.diagnostico_principal,
-            paciente.diagnosticos_secundarios || [],
-            paciente.medicacoes || [],
-            paciente.alergias || [],
-            paciente.tipo_terapia,
-            paciente.frequencia_recomendada,
-            paciente.preferencias || [],
-            paciente.gatilhos || [],
-            paciente.estrategias_eficazes || [],
-            paciente.observacoes,
-            paciente.escola,
-            paciente.status || 'ativo'
+            paciente.email || `${paciente.nome.toLowerCase().replace(/\\s+/g, '.')}@paciente.com`,
+            senhaHash,
+            paciente.nome_responsavel || paciente.responsavel?.nome,
+            paciente.contato_responsavel || paciente.responsavel?.telefone,
+            paciente.plano_saude,
+            paciente.numero_carteirinha,
+            paciente.historico_medico,
+            paciente.status || 'ativo',
+            paciente.terapeuta_responsavel_id || null,
+            paciente.supervisor_responsavel_id || null
           ]
         );
       }

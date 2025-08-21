@@ -149,6 +149,6 @@ Para questões relacionadas à segurança:
 
 ---
 
-**Última atualização**: Janeiro 2024  
+**Última atualização**: Agosto 2025 
 **Versão**: 2.0  
 **Responsável**: Equipe de Desenvolvimento CliniAgende

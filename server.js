@@ -9,7 +9,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares de segurança
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://unpkg.com"],
+      scriptSrcAttr: ["'unsafe-inline'"], // Permitir onclick handlers
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"]
+    }
+  }
+}));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -48,12 +60,16 @@ const authRoutes = require('./backend/routes/auth');
 const pacientesRoutes = require('./backend/routes/pacientes');
 const agendamentosRoutes = require('./backend/routes/agendamentos');
 const disponibilidadesRoutes = require('./backend/routes/disponibilidades');
+const terapeutasRoutes = require('./backend/routes/terapeutas');
+const supervisoresRoutes = require('./backend/routes/supervisores');
 
 // Usar rotas da API
 app.use('/api/auth', authRoutes);
 app.use('/api/pacientes', pacientesRoutes);
 app.use('/api/agendamentos', agendamentosRoutes);
 app.use('/api/disponibilidades', disponibilidadesRoutes);
+app.use('/api/terapeutas', terapeutasRoutes);
+app.use('/api/supervisores', supervisoresRoutes);
 
 // Rota de saúde
 app.get('/api/health', (req, res) => {
