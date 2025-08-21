@@ -109,31 +109,88 @@ class Application {
     }
 
     // Authentication
-    loginAs(role) {
-        let userData;
-        
-        if (role === 'terapeuta') {
-            userData = { role: 'terapeuta', data: dataManager.getTerapeutas()[0] };
-        } else if (role === 'supervisor') {
-            userData = { role: 'supervisor', data: dataManager.getSupervisores()[0] };
-        } else {
-            Utils.showToast('Tipo de usuário inválido', 'error');
-            return;
-        }
+    async loginAs(role) {
+        // Show login form instead of auto-login
+        this.showLoginForm(role);
+    }
 
-        this.currentUser = userData;
+    showLoginForm(role) {
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+        modal.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+                <h3 class="text-xl font-bold mb-4">Login ${role === 'supervisor' ? 'Supervisor' : 'Terapeuta'}</h3>
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
+                        <input type="email" id="email" name="email" required 
+                               class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-slate-700">Senha</label>
+                        <input type="password" id="password" name="password" required 
+                               class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                    </div>
+                    <div class="text-xs text-slate-500">
+                        Senha padrão para MVP: <strong>123456</strong>
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button type="button" onclick="this.closest('.fixed').remove()" class="flex-1 px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600">
+                            Entrar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
         
-        // Save login state
-        Utils.saveToStorage('currentUser', userData);
+        document.body.appendChild(modal);
         
-        // Animate login transition
-        this.transitionToApp();
+        // Handle form submission
+        modal.querySelector('#login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleLogin(e, modal);
+        });
+    }
+
+    async handleLogin(e, modal) {
+        const formData = new FormData(e.target);
+        const email = formData.get('email');
+        const password = formData.get('password');
+        
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Entrando...';
+        
+        try {
+            const response = await dataManager.login(email, password);
+            
+            this.currentUser = {
+                role: response.user.role,
+                data: {
+                    id: response.user.id,
+                    name: response.user.nome,
+                    avatar: response.user.avatar || 'https://placehold.co/100x100/a7f3d0/15803d?text=' + response.user.nome.charAt(0)
+                }
+            };
+            
+            modal.remove();
+            this.transitionToApp();
+            
+        } catch (error) {
+            Utils.showToast(error.message || 'Erro no login', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Entrar';
+        }
     }
 
     logout() {
         // Clear user data
         this.currentUser = null;
-        Utils.removeFromStorage('currentUser');
+        dataManager.logout();
         
         // Reset application state
         this.currentView = 'dashboard';
@@ -604,7 +661,20 @@ class Application {
     }
 
     renderPacientesView() {
-        const patients = dataManager.getPacientes();
+        // Load patients from API if not already loaded
+        dataManager.getPacientes().then(patients => {
+            if (this.currentView === 'pacientes') {
+                // Re-render if we're still on the patients view
+                setTimeout(() => {
+                    this.renderView('pacientes', document.getElementById('main-content'));
+                    lucide.createIcons();
+                }, 100);
+            }
+        }).catch(error => {
+            console.error('Error loading patients:', error);
+        });
+
+        const patients = dataManager.data.pacientes || [];
         
         return `
             <div class="card">
@@ -1317,14 +1387,14 @@ class Application {
             return;
         }
         
-        // Adicionar aos dados
+        // Adicionar aos dados via API
         try {
-            dataManager.addPaciente(pacienteData);
+            await dataManager.addPaciente(pacienteData);
             Utils.showToast('Paciente cadastrado com sucesso!', 'success');
             this.navigateTo('pacientes');
         } catch (error) {
             console.error('Erro ao cadastrar paciente:', error);
-            Utils.showToast('Erro ao cadastrar paciente. Tente novamente.', 'error');
+            Utils.showToast(error.message || 'Erro ao cadastrar paciente. Tente novamente.', 'error');
         }
     }
 
