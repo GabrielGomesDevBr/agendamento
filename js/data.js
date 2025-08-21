@@ -276,6 +276,25 @@ class DataManager {
         return null;
     }
 
+    addPaciente(pacienteData) {
+        // Verificar se já existe um paciente com o mesmo CPF
+        const existePaciente = this.data.pacientes.find(p => p.cpf === pacienteData.cpf);
+        if (existePaciente) {
+            throw new Error('Já existe um paciente cadastrado com este CPF');
+        }
+
+        const novoPaciente = {
+            ...pacienteData,
+            id: Math.max(...this.data.pacientes.map(p => p.id), 200) + 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        this.data.pacientes.push(novoPaciente);
+        console.log('Paciente adicionado:', novoPaciente);
+        return novoPaciente;
+    }
+
     // Métodos de estatísticas
     getEstatisticas() {
         const hoje = new Date();

@@ -236,6 +236,10 @@ class Application {
                     <i data-lucide="users" class="nav-icon"></i>
                     <span>Pacientes</span>
                 </a>
+                <a href="#" data-navigate="novo-paciente" class="nav-item" data-view="novo-paciente">
+                    <i data-lucide="user-plus" class="nav-icon"></i>
+                    <span>Novo Paciente</span>
+                </a>
                 <a href="#" data-navigate="terapeutas" class="nav-item" data-view="terapeutas">
                     <i data-lucide="user-cog" class="nav-icon"></i>
                     <span>Terapeutas</span>
@@ -282,6 +286,7 @@ class Application {
             dashboard: 'Dashboard',
             calendario: 'Calendário & Agendamentos',
             pacientes: 'Gestão de Pacientes',
+            'novo-paciente': 'Cadastrar Novo Paciente',
             terapeutas: 'Equipe de Terapeutas',
             relatorios: 'Relatórios',
             'meus-pacientes': 'Meus Pacientes',
@@ -299,6 +304,11 @@ class Application {
             this.renderView(view, contentArea);
             Utils.showLoading(false);
             lucide.createIcons();
+            
+            // Initialize form if it's the new patient view
+            if (view === 'novo-paciente') {
+                this.initializeNovoPacienteForm();
+            }
         }, 200);
     }
 
@@ -313,6 +323,9 @@ class Application {
                 break;
             case 'pacientes':
                 container.innerHTML = this.renderPacientesView();
+                break;
+            case 'novo-paciente':
+                container.innerHTML = this.renderNovoPacienteView();
                 break;
             case 'terapeutas':
                 container.innerHTML = this.renderTerapeutasView();
@@ -602,6 +615,10 @@ class Application {
                             <p class="card-subtitle">${patients.length} pacientes cadastrados</p>
                         </div>
                         <div class="flex gap-2">
+                            <button onclick="App.navigateTo('novo-paciente')" class="btn-primary text-sm">
+                                <i data-lucide="user-plus" class="w-4 h-4 inline mr-1"></i>
+                                Novo Paciente
+                            </button>
                             <button onclick="this.exportPatientsData('csv')" class="btn-secondary text-sm">
                                 <i data-lucide="download" class="w-4 h-4 inline mr-1"></i>
                                 Exportar CSV
@@ -654,6 +671,196 @@ class Application {
                             `;
                         }).join('')}
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    renderNovoPacienteView() {
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <div class="flex items-center gap-4">
+                        <button onclick="App.navigateTo('pacientes')" class="btn-secondary text-sm">
+                            <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i>
+                            Voltar
+                        </button>
+                        <h3 class="card-title">Cadastrar Novo Paciente</h3>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="novo-paciente-form" class="space-y-6">
+                        <!-- Informações Básicas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Básicas</h4>
+                            </div>
+                            <div>
+                                <label for="nome" class="block text-sm font-medium text-slate-700">Nome Completo *</label>
+                                <input type="text" id="nome" name="nome" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="cpf" class="block text-sm font-medium text-slate-700">CPF *</label>
+                                <input type="text" id="cpf" name="cpf" required placeholder="000.000.000-00" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="data_nascimento" class="block text-sm font-medium text-slate-700">Data de Nascimento *</label>
+                                <input type="date" id="data_nascimento" name="data_nascimento" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="sexo" class="block text-sm font-medium text-slate-700">Sexo *</label>
+                                <select id="sexo" name="sexo" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Feminino">Feminino</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Endereço -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Endereço</h4>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="endereco_rua" class="block text-sm font-medium text-slate-700">Rua e Número *</label>
+                                <input type="text" id="endereco_rua" name="endereco_rua" required placeholder="Ex: Rua das Flores, 123" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="endereco_bairro" class="block text-sm font-medium text-slate-700">Bairro *</label>
+                                <input type="text" id="endereco_bairro" name="endereco_bairro" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="endereco_cidade" class="block text-sm font-medium text-slate-700">Cidade *</label>
+                                <input type="text" id="endereco_cidade" name="endereco_cidade" required value="São Paulo" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="endereco_cep" class="block text-sm font-medium text-slate-700">CEP *</label>
+                                <input type="text" id="endereco_cep" name="endereco_cep" required placeholder="00000-000" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Contato -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Contato</h4>
+                            </div>
+                            <div>
+                                <label for="telefone" class="block text-sm font-medium text-slate-700">Telefone *</label>
+                                <input type="tel" id="telefone" name="telefone" required placeholder="(11) 91234-5678" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="email_responsavel" class="block text-sm font-medium text-slate-700">Email do Responsável *</label>
+                                <input type="email" id="email_responsavel" name="email_responsavel" required placeholder="exemplo@email.com" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Responsável -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-3">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Responsável Legal</h4>
+                            </div>
+                            <div>
+                                <label for="responsavel_nome" class="block text-sm font-medium text-slate-700">Nome do Responsável *</label>
+                                <input type="text" id="responsavel_nome" name="responsavel_nome" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="responsavel_cpf" class="block text-sm font-medium text-slate-700">CPF do Responsável *</label>
+                                <input type="text" id="responsavel_cpf" name="responsavel_cpf" required placeholder="000.000.000-00" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="responsavel_parentesco" class="block text-sm font-medium text-slate-700">Parentesco *</label>
+                                <select id="responsavel_parentesco" name="responsavel_parentesco" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="Mãe">Mãe</option>
+                                    <option value="Pai">Pai</option>
+                                    <option value="Avô">Avô</option>
+                                    <option value="Avó">Avó</option>
+                                    <option value="Tio">Tio</option>
+                                    <option value="Tia">Tia</option>
+                                    <option value="Responsável Legal">Responsável Legal</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Informações Clínicas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Clínicas</h4>
+                            </div>
+                            <div>
+                                <label for="diagnostico_principal" class="block text-sm font-medium text-slate-700">Diagnóstico Principal *</label>
+                                <input type="text" id="diagnostico_principal" name="diagnostico_principal" required placeholder="Ex: TDAH, TEA, etc." class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="tipo_terapia" class="block text-sm font-medium text-slate-700">Tipo de Terapia *</label>
+                                <select id="tipo_terapia" name="tipo_terapia" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="ABA">ABA</option>
+                                    <option value="Fonoaudiologia">Fonoaudiologia</option>
+                                    <option value="Psicoterapia Individual">Psicoterapia Individual</option>
+                                    <option value="Terapia Ocupacional">Terapia Ocupacional</option>
+                                    <option value="Psicomotricidade">Psicomotricidade</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="frequencia_recomendada" class="block text-sm font-medium text-slate-700">Frequência Recomendada *</label>
+                                <select id="frequencia_recomendada" name="frequencia_recomendada" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="1x por semana">1x por semana</option>
+                                    <option value="2x por semana">2x por semana</option>
+                                    <option value="3x por semana">3x por semana</option>
+                                    <option value="4x por semana">4x por semana</option>
+                                    <option value="5x por semana">5x por semana</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="escola" class="block text-sm font-medium text-slate-700">Escola</label>
+                                <input type="text" id="escola" name="escola" placeholder="Nome da escola" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Informações Adicionais -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Adicionais</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="medicacoes" class="block text-sm font-medium text-slate-700">Medicações</label>
+                                    <textarea id="medicacoes" name="medicacoes" rows="3" placeholder="Ex: Ritalina 10mg - 1x ao dia" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                                <div>
+                                    <label for="alergias" class="block text-sm font-medium text-slate-700">Alergias</label>
+                                    <textarea id="alergias" name="alergias" rows="3" placeholder="Ex: Lactose, Amendoim" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label for="preferencias" class="block text-sm font-medium text-slate-700">Preferências</label>
+                                    <textarea id="preferencias" name="preferencias" rows="3" placeholder="Ex: Brinquedos de encaixe, Histórias de super-heróis" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                                <div>
+                                    <label for="gatilhos" class="block text-sm font-medium text-slate-700">Gatilhos</label>
+                                    <textarea id="gatilhos" name="gatilhos" rows="3" placeholder="Ex: Barulhos altos, Mudanças bruscas de rotina" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <label for="observacoes" class="block text-sm font-medium text-slate-700">Observações Gerais</label>
+                                <textarea id="observacoes" name="observacoes" rows="4" placeholder="Informações importantes sobre o paciente, comportamentos, estratégias eficazes..." class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-200">
+                            <button type="button" onclick="App.navigateTo('pacientes')" class="flex-1 px-6 py-3 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300 font-semibold transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="flex-1 px-6 py-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 font-semibold transition-colors">
+                                Cadastrar Paciente
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         `;
@@ -1055,6 +1262,182 @@ class Application {
         } else {
             Utils.showToast('Telefone não disponível', 'warning');
         }
+    }
+
+    // Cadastro de Pacientes
+    initializeNovoPacienteForm() {
+        const form = document.getElementById('novo-paciente-form');
+        if (!form) return;
+        
+        // Adicionar máscaras de formatação
+        this.setupFormMasks();
+        
+        // Submit do formulário
+        form.addEventListener('submit', (e) => this.handleNovoPacienteSubmit(e));
+    }
+
+    setupFormMasks() {
+        const cpfInput = document.getElementById('cpf');
+        const responsavelCpfInput = document.getElementById('responsavel_cpf');
+        const telefoneInput = document.getElementById('telefone');
+        const cepInput = document.getElementById('endereco_cep');
+        
+        // Máscaras de formatação
+        const formatCPF = (value) => value.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        const formatTelefone = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        const formatCEP = (value) => value.replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2');
+        
+        cpfInput?.addEventListener('input', (e) => {
+            e.target.value = formatCPF(e.target.value);
+        });
+        
+        responsavelCpfInput?.addEventListener('input', (e) => {
+            e.target.value = formatCPF(e.target.value);
+        });
+        
+        telefoneInput?.addEventListener('input', (e) => {
+            e.target.value = formatTelefone(e.target.value);
+        });
+        
+        cepInput?.addEventListener('input', (e) => {
+            e.target.value = formatCEP(e.target.value);
+        });
+    }
+
+    handleNovoPacienteSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const pacienteData = this.extractPatientDataFromForm(formData);
+        
+        // Validação
+        const validationErrors = this.validatePatientData(pacienteData);
+        if (validationErrors.length > 0) {
+            Utils.showToast(`Erros no formulário:\n${validationErrors.join('\n')}`, 'error');
+            return;
+        }
+        
+        // Adicionar aos dados
+        try {
+            dataManager.addPaciente(pacienteData);
+            Utils.showToast('Paciente cadastrado com sucesso!', 'success');
+            this.navigateTo('pacientes');
+        } catch (error) {
+            console.error('Erro ao cadastrar paciente:', error);
+            Utils.showToast('Erro ao cadastrar paciente. Tente novamente.', 'error');
+        }
+    }
+
+    extractPatientDataFromForm(formData) {
+        return {
+            id: Date.now(),
+            nome: formData.get('nome'),
+            cpf: formData.get('cpf'),
+            data_nascimento: formData.get('data_nascimento'),
+            sexo: formData.get('sexo'),
+            telefone: formData.get('telefone'),
+            email_responsavel: formData.get('email_responsavel'),
+            diagnostico_principal: formData.get('diagnostico_principal'),
+            tipo_terapia: formData.get('tipo_terapia'),
+            frequencia_recomendada: formData.get('frequencia_recomendada'),
+            escola: formData.get('escola') || '',
+            status: 'ativo',
+            endereco: {
+                rua: formData.get('endereco_rua'),
+                bairro: formData.get('endereco_bairro'),
+                cidade: formData.get('endereco_cidade'),
+                cep: formData.get('endereco_cep')
+            },
+            responsavel: {
+                nome: formData.get('responsavel_nome'),
+                cpf: formData.get('responsavel_cpf'),
+                parentesco: formData.get('responsavel_parentesco')
+            },
+            medicacoes: this.processTextareaToArray(formData.get('medicacoes')) || ['Nenhuma'],
+            alergias: this.processTextareaToArray(formData.get('alergias')) || ['Nenhuma conhecida'],
+            preferencias: this.processTextareaToArray(formData.get('preferencias')) || [],
+            gatilhos: this.processTextareaToArray(formData.get('gatilhos')) || [],
+            observacoes: formData.get('observacoes') || '',
+            diagnosticos_secundarios: [],
+            estrategias_eficazes: []
+        };
+    }
+
+    processTextareaToArray(text) {
+        if (!text) return null;
+        return text.split('\n').map(line => line.trim()).filter(line => line);
+    }
+
+    validatePatientData(data) {
+        const errors = [];
+        
+        if (!data.nome || data.nome.trim().length < 3) {
+            errors.push('Nome deve ter pelo menos 3 caracteres');
+        }
+        
+        if (!data.cpf || !this.validateCPF(data.cpf)) {
+            errors.push('CPF inválido');
+        }
+        
+        if (!data.data_nascimento) {
+            errors.push('Data de nascimento é obrigatória');
+        }
+        
+        if (!data.sexo) {
+            errors.push('Sexo é obrigatório');
+        }
+        
+        if (!data.telefone || data.telefone.length < 14) {
+            errors.push('Telefone inválido');
+        }
+        
+        if (!data.email_responsavel || !this.validateEmail(data.email_responsavel)) {
+            errors.push('Email do responsável inválido');
+        }
+        
+        if (!data.responsavel.nome || data.responsavel.nome.trim().length < 3) {
+            errors.push('Nome do responsável deve ter pelo menos 3 caracteres');
+        }
+        
+        if (!data.responsavel.cpf || !this.validateCPF(data.responsavel.cpf)) {
+            errors.push('CPF do responsável inválido');
+        }
+        
+        if (!data.diagnostico_principal || data.diagnostico_principal.trim().length < 3) {
+            errors.push('Diagnóstico principal é obrigatório');
+        }
+        
+        if (!data.tipo_terapia) {
+            errors.push('Tipo de terapia é obrigatório');
+        }
+        
+        if (!data.frequencia_recomendada) {
+            errors.push('Frequência recomendada é obrigatória');
+        }
+        
+        return errors;
+    }
+
+    validateCPF(cpf) {
+        cpf = cpf.replace(/\D/g, '');
+        if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+        
+        let sum = 0;
+        for (let i = 0; i < 9; i++) sum += parseInt(cpf[i]) * (10 - i);
+        let digit1 = 11 - (sum % 11);
+        if (digit1 > 9) digit1 = 0;
+        
+        sum = 0;
+        for (let i = 0; i < 10; i++) sum += parseInt(cpf[i]) * (11 - i);
+        let digit2 = 11 - (sum % 11);
+        if (digit2 > 9) digit2 = 0;
+        
+        return digit1 === parseInt(cpf[9]) && digit2 === parseInt(cpf[10]);
+    }
+
+    validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
     }
 }
 
