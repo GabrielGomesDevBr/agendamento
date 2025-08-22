@@ -43,7 +43,7 @@ const schemas = {
       'string.max': 'Nome deve ter no máximo 255 caracteres',
       'any.required': 'Nome é obrigatório'
     }),
-    cpf: Joi.string().pattern(/^\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}$/).required().messages({
+    cpf: Joi.string().pattern(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/).required().messages({
       'string.pattern.base': 'CPF deve estar no formato 000.000.000-00',
       'any.required': 'CPF é obrigatório'
     }),
@@ -51,11 +51,11 @@ const schemas = {
       'date.max': 'Data de nascimento não pode ser futura',
       'any.required': 'Data de nascimento é obrigatória'
     }),
-    sexo: Joi.string().valid('Masculino', 'Feminino').required().messages({
-      'any.only': 'Sexo deve ser Masculino ou Feminino',
-      'any.required': 'Sexo é obrigatório'
+    genero: Joi.string().valid('Masculino', 'Feminino').required().messages({
+      'any.only': 'Gênero deve ser Masculino ou Feminino',
+      'any.required': 'Gênero é obrigatório'
     }),
-    telefone: Joi.string().pattern(/^\\(\\d{2}\\) \\d{4,5}-\\d{4}$/).required().messages({
+    telefone: Joi.string().pattern(/^\(\d{2}\) \d{4,5}-\d{4}$/).required().messages({
       'string.pattern.base': 'Telefone deve estar no formato (00) 00000-0000',
       'any.required': 'Telefone é obrigatório'
     }),
@@ -67,11 +67,11 @@ const schemas = {
       rua: Joi.string().required(),
       bairro: Joi.string().required(),
       cidade: Joi.string().required(),
-      cep: Joi.string().pattern(/^\\d{5}-\\d{3}$/).required()
+      cep: Joi.string().pattern(/^\d{5}-\d{3}$/).required()
     }).required(),
     responsavel: Joi.object({
       nome: Joi.string().min(3).required(),
-      cpf: Joi.string().pattern(/^\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}$/).required(),
+      cpf: Joi.string().pattern(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/).required(),
       parentesco: Joi.string().required()
     }).required(),
     diagnostico_principal: Joi.string().min(3).required().messages({
@@ -96,12 +96,12 @@ const schemas = {
   agendamento: Joi.object({
     paciente_id: Joi.number().integer().positive().required(),
     terapeuta_id: Joi.number().integer().positive().required(),
-    data_hora: Joi.date().min('now').required().messages({
-      'date.min': 'Data/hora do agendamento deve ser futura'
-    }),
+    data_hora: Joi.date().required(),
+    duracao: Joi.number().integer().min(30).max(180).default(60),
     tipo_terapia: Joi.string().required(),
     local: Joi.string().required(),
-    observacoes: Joi.string().allow('').optional()
+    observacoes: Joi.string().allow('').optional(),
+    status: Joi.string().valid('agendado', 'realizado', 'cancelado', 'faltou').default('agendado')
   }),
 
   // Disponibilidade

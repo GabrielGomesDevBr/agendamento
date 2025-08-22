@@ -12,10 +12,10 @@ class FormsManager {
 
     setupFormEventListeners() {
         // Form submission handling
-        document.addEventListener('submit', (e) => {
+        document.addEventListener('submit', async (e) => {
             if (e.target.matches('form[data-form-type]')) {
                 e.preventDefault();
-                this.handleFormSubmission(e.target);
+                await this.handleFormSubmission(e.target);
             }
         });
 
@@ -119,7 +119,7 @@ class FormsManager {
                     <div class="modal-header">
                         <h3 class="text-xl font-bold text-slate-800">Agendar Paciente</h3>
                         <p class="text-sm text-slate-500 mt-1">
-                            ${Utils.formatDateTime(datetime)} com ${therapist.name}
+                            ${Utils.formatDateTime(datetime)} com ${therapist.nome}
                         </p>
                     </div>
 
@@ -319,7 +319,7 @@ class FormsManager {
                                 </div>
                                 <div>
                                     <label class="text-sm font-medium text-slate-600">Terapeuta</label>
-                                    <p>${therapist.name}</p>
+                                    <p>${therapist.nome}</p>
                                     <p class="text-sm text-slate-500">${therapist.especialidades.join(', ')}</p>
                                 </div>
                             </div>
@@ -445,7 +445,7 @@ class FormsManager {
                                     <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
                                         <div>
                                             <p class="font-semibold text-sm">${Utils.formatDateTime(app.datetime)}</p>
-                                            <p class="text-xs text-slate-600">${therapist.name} • ${app.local}</p>
+                                            <p class="text-xs text-slate-600">${therapist.nome} • ${app.local}</p>
                                             ${app.observacoes ? `<p class="text-xs text-slate-500 mt-1">${app.observacoes}</p>` : ''}
                                         </div>
                                         <span class="text-xs font-medium px-2 py-1 rounded-full" 
@@ -473,7 +473,7 @@ class FormsManager {
     }
 
     // Form submission handlers
-    handleFormSubmission(form) {
+    async handleFormSubmission(form) {
         const formType = form.dataset.formType;
         const formData = Utils.getFormData(form);
 
@@ -486,17 +486,20 @@ class FormsManager {
         // Handle different form types
         switch (formType) {
             case 'availability':
-                this.handleAvailabilitySubmission(formData);
+                await this.handleAvailabilitySubmission(formData);
+                break;
+            case 'edit-availability':
+                await this.handleEditAvailabilitySubmission(form, formData);
                 break;
             case 'booking':
-                this.handleBookingSubmission(formData);
+                await this.handleBookingSubmission(formData);
                 break;
             default:
                 console.warn('Unknown form type:', formType);
         }
     }
 
-    handleAvailabilitySubmission(formData) {
+    async handleAvailabilitySubmission(formData) {
         const [year, month, day] = formData.date.split('-').map(Number);
         const [hour, minute] = formData.time.split(':').map(Number);
         
@@ -508,13 +511,49 @@ class FormsManager {
             duracao: parseInt(formData.duration) || 60
         };
 
-        dataManager.adicionarDisponibilidade(availability);
-        Utils.closeModal();
-        calendarManager.render();
-        Utils.showToast('Disponibilidade adicionada com sucesso!');
+        try {
+            await dataManager.adicionarDisponibilidade(availability);
+            Utils.closeModal();
+            calendarManager.render();
+            Utils.showToast('Disponibilidade adicionada com sucesso!');
+        } catch (error) {
+            // Erro já tratado na função adicionarDisponibilidade
+        }
     }
 
-    handleBookingSubmission(formData) {
+    async handleEditAvailabilitySubmission(form, formData) {
+        const availabilityId = form.dataset.availabilityId;
+        const [year, month, day] = formData.date.split('-').map(Number);
+        const [hour, minute] = formData.time.split(':').map(Number);
+        
+        const datetime = new Date(year, month - 1, day, hour, minute);
+        
+        try {
+            // Primeiro remover a disponibilidade antiga
+            await dataManager.removerDisponibilidade(availabilityId);
+            
+            // Depois criar nova disponibilidade
+            const newAvailability = {
+                terapeutaId: App.currentUser.data.id,
+                datetime: datetime.getTime(),
+                duracao: parseInt(formData.duration) || 60
+            };
+            
+            await dataManager.adicionarDisponibilidade(newAvailability);
+            
+            Utils.closeModal();
+            Utils.showToast('Disponibilidade editada com sucesso!');
+            
+            // Recarregar página de disponibilidades
+            await App.navigateTo('disponibilidades');
+            
+        } catch (error) {
+            console.error('Erro ao editar disponibilidade:', error);
+            Utils.showToast('Erro ao editar disponibilidade', 'error');
+        }
+    }
+
+    async handleBookingSubmission(formData) {
         const availability = dataManager.data.disponibilidades.find(d => d.id == formData.availabilityId);
         if (!availability) {
             Utils.showToast('Horário não encontrado', 'error');
@@ -532,7 +571,7 @@ class FormsManager {
             status: 'agendado'
         };
 
-        dataManager.adicionarAgendamento(appointment);
+        await dataManager.adicionarAgendamento(appointment);
         Utils.closeModal();
         calendarManager.render();
         Utils.showToast('Agendamento realizado com sucesso!');
@@ -627,8 +666,8 @@ class FormsManager {
     }
 
     // Status update methods
-    updateAppointmentStatus(appointmentId, newStatus) {
-        const updated = dataManager.atualizarStatusAgendamento(appointmentId, newStatus);
+    async updateAppointmentStatus(appointmentId, newStatus) {
+        const updated = await dataManager.atualizarStatusAgendamento(appointmentId, newStatus);
         if (updated) {
             Utils.closeModal();
             calendarManager.render();
@@ -648,15 +687,25 @@ class FormsManager {
     // Quick actions
     schedulePatient(patientId) {
         Utils.closeModal();
+        
+        // Store the selected patient ID for the calendar
+        if (window.calendarManager) {
+            window.calendarManager.selectedPatientId = patientId;
+        } else {
+            // Store it globally if calendar manager isn't loaded yet
+            window.selectedPatientForScheduling = patientId;
+        }
+        
         App.navigateTo('calendario');
         
         // Show available slots for this patient
-        Utils.showToast('Selecione um horário disponível no calendário', 'info');
+        Utils.showToast('Selecione um horário disponível no calendário para o paciente', 'info');
     }
 }
 
 // Global instance
 const Forms = new FormsManager();
+window.Forms = Forms;
 
 // Make methods available globally for onclick handlers
 window.updateAppointmentStatus = function(appointmentId, newStatus) {

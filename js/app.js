@@ -187,7 +187,7 @@ class Application {
             };
             
             modal.remove();
-            this.transitionToApp();
+            await this.transitionToApp();
             
         } catch (error) {
             Utils.showToast(error.message || 'Erro no login', 'error');
@@ -209,26 +209,26 @@ class Application {
         this.transitionToLogin();
     }
 
-    transitionToApp() {
+    async transitionToApp() {
         const loginView = document.getElementById('login-view');
         const appView = document.getElementById('app-view');
         
         // Check if elements exist (for testing)
         if (!loginView || !appView) {
             console.log('Elements not found, skipping transition');
-            this.initializeAppInterface();
+            await this.initializeAppInterface();
             return;
         }
         
         loginView.classList.add('fade-out');
         
-        setTimeout(() => {
+        setTimeout(async () => {
             loginView.classList.add('hidden');
             appView.classList.remove('hidden');
             appView.classList.add('fade-in');
             
             // Initialize app interface
-            this.initializeAppInterface();
+            await this.initializeAppInterface();
         }, 500);
     }
 
@@ -245,13 +245,125 @@ class Application {
         }, 500);
     }
 
-    initializeAppInterface() {
+    async initializeAppInterface() {
         this.updateHeader();
         this.updateSidebar();
-        this.navigateTo('dashboard');
+        
+        // Aguardar um pouco para garantir que o DOM está pronto
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await this.showWelcomeScreen();
         
         // Refresh icons
         lucide.createIcons();
+    }
+
+    async showWelcomeScreen() {
+        const mainContent = document.getElementById('main-content');
+        const pageTitle = document.getElementById('page-title');
+        
+        if (pageTitle) pageTitle.textContent = 'Bem-vindo ao CliniAgende';
+        
+        const roleDisplay = this.currentUser.role === 'terapeuta' ? 'Terapeuta' : 'Supervisor';
+        const userName = this.currentUser.data.name;
+        
+        const welcomeHTML = `
+            <div class="min-h-full flex items-center justify-center">
+                <div class="text-center max-w-2xl mx-auto">
+                    <!-- Logo e Ícone Principal -->
+                    <div class="mb-8">
+                        <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-r from-teal-400 to-cyan-500 rounded-full mb-6 animate-pulse">
+                            <i data-lucide="calendar-check" class="w-12 h-12 text-white"></i>
+                        </div>
+                        <h1 class="text-4xl font-bold text-slate-800 mb-2">
+                            Olá, <span class="text-teal-600">${userName}</span>!
+                        </h1>
+                        <p class="text-xl text-slate-600">
+                            Logado como <span class="font-semibold">${roleDisplay}</span>
+                        </p>
+                    </div>
+
+                    <!-- Mensagem de Orientação -->
+                    <div class="bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-8 mb-8">
+                        <div class="flex items-center justify-center mb-4">
+                            <i data-lucide="arrow-left" class="w-6 h-6 text-teal-600 mr-2 animate-bounce"></i>
+                            <span class="text-lg font-medium text-slate-700">Selecione uma opção no menu lateral para começar</span>
+                        </div>
+                        <p class="text-slate-600">
+                            Use a navegação à esquerda para acessar as diferentes funcionalidades do sistema.
+                        </p>
+                    </div>
+
+                    <!-- Cards de Ações Rápidas -->
+                    <div class="grid grid-cols-1 md:grid-cols-${this.currentUser.role === 'supervisor' ? '3' : '2'} gap-6">
+                        ${this.getWelcomeActionCards()}
+                    </div>
+
+                    <!-- Animação de Pulsação -->
+                    <div class="mt-12">
+                        <div class="flex justify-center space-x-2">
+                            <div class="w-3 h-3 bg-teal-400 rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                            <div class="w-3 h-3 bg-teal-500 rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                            <div class="w-3 h-3 bg-teal-600 rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+                        </div>
+                        <p class="text-sm text-slate-400 mt-4">Sistema pronto para uso</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (mainContent) {
+            mainContent.innerHTML = welcomeHTML;
+            lucide.createIcons();
+        }
+        
+        // Resetar currentView para não ter nenhum item ativo
+        this.currentView = null;
+        this.updateActiveNavItem();
+    }
+
+    getWelcomeActionCards() {
+        if (this.currentUser.role === 'supervisor') {
+            return `
+                <div class="bg-white rounded-xl p-6 shadow-md border border-slate-100 hover:shadow-lg transition-all cursor-pointer transform hover:scale-105" onclick="App.navigateTo('calendario')">
+                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="calendar" class="w-6 h-6 text-teal-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Calendário</h3>
+                    <p class="text-sm text-slate-600">Visualize todos os agendamentos</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-md border border-slate-100 hover:shadow-lg transition-all cursor-pointer transform hover:scale-105" onclick="App.navigateTo('pacientes')">
+                    <div class="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="users" class="w-6 h-6 text-cyan-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Pacientes</h3>
+                    <p class="text-sm text-slate-600">Gerencie o cadastro de pacientes</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-md border border-slate-100 hover:shadow-lg transition-all cursor-pointer transform hover:scale-105" onclick="App.navigateTo('relatorios')">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="bar-chart-3" class="w-6 h-6 text-emerald-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Relatórios</h3>
+                    <p class="text-sm text-slate-600">Visualize estatísticas e dados</p>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="bg-white rounded-xl p-6 shadow-md border border-slate-100 hover:shadow-lg transition-all cursor-pointer transform hover:scale-105" onclick="App.navigateTo('calendario')">
+                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="calendar" class="w-6 h-6 text-teal-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Calendário</h3>
+                    <p class="text-sm text-slate-600">Veja seus agendamentos</p>
+                </div>
+                <div class="bg-white rounded-xl p-6 shadow-md border border-slate-100 hover:shadow-lg transition-all cursor-pointer transform hover:scale-105" onclick="App.navigateTo('disponibilidades')">
+                    <div class="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                        <i data-lucide="clock" class="w-6 h-6 text-emerald-600"></i>
+                    </div>
+                    <h3 class="font-semibold text-slate-800 mb-2">Disponibilidades</h3>
+                    <p class="text-sm text-slate-600">Gerencie seus horários livres</p>
+                </div>
+            `;
+        }
     }
 
     updateHeader() {
@@ -311,6 +423,10 @@ class Application {
                     <i data-lucide="user-cog" class="nav-icon"></i>
                     <span>Terapeutas</span>
                 </a>
+                <a href="#" data-navigate="novo-terapeuta" class="nav-item" data-view="novo-terapeuta">
+                    <i data-lucide="user-plus" class="nav-icon"></i>
+                    <span>Novo Terapeuta</span>
+                </a>
                 <a href="#" data-navigate="relatorios" class="nav-item" data-view="relatorios">
                     <i data-lucide="bar-chart-3" class="nav-icon"></i>
                     <span>Relatórios</span>
@@ -339,14 +455,14 @@ class Application {
     updateActiveNavItem() {
         document.querySelectorAll('.nav-item').forEach(item => {
             item.classList.remove('active');
-            if (item.dataset.view === this.currentView) {
+            if (this.currentView && item.dataset.view === this.currentView) {
                 item.classList.add('active');
             }
         });
     }
 
     // Navigation
-    navigateTo(view) {
+    async navigateTo(view) {
         if (this.currentView === view) return;
         
         // Debounce navigation to prevent multiple clicks
@@ -372,26 +488,29 @@ class Application {
         
         const contentArea = document.getElementById('main-content');
         
-        this.navigationTimeout = setTimeout(async () => {
-            console.log('🧭 [NAVIGATION] Navigating to:', view);
-            Utils.showLoading(true);
+        console.log('🧭 [NAVIGATION] Navigating to:', view);
+        Utils.showLoading(true);
+        
+        try {
+            await this.renderView(view, contentArea);
+            lucide.createIcons();
             
-            try {
-                await this.renderView(view, contentArea);
-                lucide.createIcons();
-                
-                // Initialize form if it's the new patient view
-                if (view === 'novo-paciente') {
-                    this.initializeNovoPacienteForm();
-                }
-                
-                console.log('✅ [NAVIGATION] Successfully navigated to:', view);
-            } catch (error) {
-                console.error('❌ [NAVIGATION] Error navigating to:', view, error);
-            } finally {
-                Utils.showLoading(false);
+            // Initialize form if it's the new patient view
+            if (view === 'novo-paciente') {
+                this.initializeNovoPacienteForm();
             }
-        }, 100); // Reduced delay for better responsiveness
+            
+            // Initialize form if it's the new therapist view
+            if (view === 'novo-terapeuta') {
+                this.initializeNovoTerapeutaForm();
+            }
+            
+            console.log('✅ [NAVIGATION] Successfully navigated to:', view);
+        } catch (error) {
+            console.error('❌ [NAVIGATION] Error navigating to:', view, error);
+        } finally {
+            Utils.showLoading(false);
+        }
     }
 
     async renderView(view, container) {
@@ -412,6 +531,9 @@ class Application {
                 break;
             case 'novo-paciente':
                 container.innerHTML = this.renderNovoPacienteView();
+                break;
+            case 'novo-terapeuta':
+                container.innerHTML = this.renderNovoTerapeutaView();
                 break;
             case 'terapeutas':
                 container.innerHTML = await this.renderTerapeutasView();
@@ -516,15 +638,16 @@ class Application {
                         ${todayAppointments.length > 0 ? `
                             <div class="space-y-3">
                                 ${todayAppointments.map(app => {
-                                    const patient = dataManager.getPacienteById(app.pacienteId);
+                                    const patient = dataManager.getPacienteByIdSync(app.pacienteId);
+                                    const patientName = patient ? patient.nome : 'Paciente não encontrado';
                                     return `
                                         <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                                             <div class="flex items-center gap-3">
                                                 <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                                                    ${Utils.getInitials(patient.nome)}
+                                                    ${patient ? Utils.getInitials(patient.nome) : '?'}
                                                 </div>
                                                 <div>
-                                                    <p class="font-semibold">${patient.nome}</p>
+                                                    <p class="font-semibold">${patientName}</p>
                                                     <p class="text-sm text-slate-500">${Utils.formatTime(app.datetime)} • ${app.local}</p>
                                                 </div>
                                             </div>
@@ -586,15 +709,16 @@ class Application {
                     <div class="card-body">
                         <div class="space-y-3">
                             ${nextAppointments.map(app => {
-                                const patient = dataManager.getPacienteById(app.pacienteId);
+                                const patient = dataManager.getPacienteByIdSync(app.pacienteId);
+                                const patientName = patient ? patient.nome : 'Paciente não encontrado';
                                 return `
                                     <div class="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
                                         <div class="flex items-center gap-3">
                                             <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-semibold">
-                                                ${Utils.getInitials(patient.nome)}
+                                                ${patient ? Utils.getInitials(patient.nome) : '?'}
                                             </div>
                                             <div>
-                                                <p class="font-semibold">${patient.nome}</p>
+                                                <p class="font-semibold">${patientName}</p>
                                                 <p class="text-sm text-slate-500">${Utils.formatDateTime(app.datetime)} • ${app.local}</p>
                                             </div>
                                         </div>
@@ -612,11 +736,26 @@ class Application {
     async renderSupervisorDashboard() {
         const stats = await dataManager.getEstatisticas();
         const allAppointments = await dataManager.getAgendamentos();
-        const recentAppointments = allAppointments
-            .sort((a, b) => b.datetime - a.datetime)
+        
+        // Filtrar agendamentos se for terapeuta
+        const myAppointments = this.currentUser.role === 'terapeuta' 
+            ? allAppointments.filter(a => a.terapeutaId === this.currentUser.data.id)
+            : allAppointments;
+        
+        // Próximos agendamentos (futuros) ordenados por data
+        const now = new Date().getTime();
+        const upcomingAppointments = myAppointments
+            .filter(a => a.datetime > now && a.status === 'agendado')
+            .sort((a, b) => a.datetime - b.datetime)
             .slice(0, 5);
 
-        const allPatients = await dataManager.getPacientes();
+        const allPatientsData = await dataManager.getPacientes();
+        
+        // Filtrar pacientes se for terapeuta
+        const allPatients = this.currentUser.role === 'terapeuta' 
+            ? allPatientsData.filter(p => p.terapeuta_responsavel_id === this.currentUser.data.id)
+            : allPatientsData;
+            
         const scheduledPatients = await dataManager.getAgendamentos({ status: 'agendado' });
         const patientsWithoutSchedule = allPatients.filter(p => 
             !scheduledPatients.some(a => a.pacienteId === p.id)
@@ -631,8 +770,8 @@ class Application {
                             <i data-lucide="users" class="w-6 h-6 text-blue-600"></i>
                         </div>
                         <div>
-                            <h4 class="font-semibold text-slate-500">Pacientes</h4>
-                            <p class="text-2xl font-bold">${stats.totalPacientes}</p>
+                            <h4 class="font-semibold text-slate-500">${this.currentUser.role === 'terapeuta' ? 'Meus Pacientes' : 'Pacientes'}</h4>
+                            <p class="text-2xl font-bold">${allPatients.length}</p>
                         </div>
                     </div>
                 </div>
@@ -643,7 +782,7 @@ class Application {
                             <i data-lucide="calendar-check" class="w-6 h-6 text-green-600"></i>
                         </div>
                         <div>
-                            <h4 class="font-semibold text-slate-500">Agendados</h4>
+                            <h4 class="font-semibold text-slate-500">${this.currentUser.role === 'terapeuta' ? 'Minhas Sessões' : 'Agendados'}</h4>
                             <p class="text-2xl font-bold">${stats.agendamentosAgendados}</p>
                         </div>
                     </div>
@@ -661,17 +800,31 @@ class Application {
                     </div>
                 </div>
 
-                <div class="stat-card">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                            <i data-lucide="user-cog" class="w-6 h-6 text-purple-600"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-slate-500">Terapeutas</h4>
-                            <p class="text-2xl font-bold">${stats.totalTerapeutas}</p>
+                ${this.currentUser.role === 'supervisor' ? `
+                    <div class="stat-card">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="user-cog" class="w-6 h-6 text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-500">Terapeutas</h4>
+                                <p class="text-2xl font-bold">${stats.totalTerapeutas}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                ` : `
+                    <div class="stat-card">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="alert-circle" class="w-6 h-6 text-red-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-slate-500">Sem Agendamento</h4>
+                                <p class="text-2xl font-bold">${patientsWithoutSchedule.length}</p>
+                            </div>
+                        </div>
+                    </div>
+                `}
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -688,7 +841,7 @@ class Application {
                                     <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                                         <div>
                                             <p class="font-semibold text-red-900">${p.nome}</p>
-                                            <p class="text-sm text-red-700">${p.diagnostico_principal}</p>
+                                            <p class="text-sm text-red-700">${p.diagnostico_principal || 'Diagnóstico não informado'}</p>
                                         </div>
                                         <button onclick="schedulePatient(${p.id})" class="px-3 py-1 bg-red-600 text-white text-sm rounded-full hover:bg-red-700 transition-colors">
                                             Agendar
@@ -712,17 +865,19 @@ class Application {
                     </div>
                     <div class="card-body">
                         <div class="space-y-3">
-                            ${recentAppointments.map(app => {
-                                const patient = dataManager.getPacienteById(app.pacienteId);
+                            ${upcomingAppointments.map(app => {
+                                const patient = dataManager.getPacienteByIdSync(app.pacienteId);
                                 const therapist = dataManager.getTerapeutaById(app.terapeutaId);
+                                const patientName = patient ? patient.nome : 'Paciente não encontrado';
+                                const therapistName = therapist ? therapist.nome : 'Terapeuta não encontrado';
                                 return `
                                     <div class="flex items-center gap-3 p-2">
                                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold" style="background-color: ${Utils.getStatusColor(app.status)}20; color: ${Utils.getStatusColor(app.status)}">
-                                            ${Utils.getInitials(patient.nome)}
+                                            ${patient ? Utils.getInitials(patient.nome) : '?'}
                                         </div>
                                         <div class="flex-1">
-                                            <p class="text-sm font-medium">${patient.nome}</p>
-                                            <p class="text-xs text-slate-500">${therapist.nome} • ${Utils.getRelativeTime(app.datetime)}</p>
+                                            <p class="text-sm font-medium">${patientName}</p>
+                                            <p class="text-xs text-slate-500">${therapistName} • ${Utils.getRelativeTime(app.datetime)}</p>
                                         </div>
                                         <span class="text-xs px-2 py-1 rounded-full" style="background-color: ${Utils.getStatusColor(app.status)}20; color: ${Utils.getStatusColor(app.status)}">
                                             ${app.status}
@@ -742,8 +897,16 @@ class Application {
         
         let patients = [];
         try {
-            patients = await dataManager.getPacientes();
-            console.log('👥 [DEBUG] Loaded patients:', patients.length, 'patients');
+            const allPatients = await dataManager.getPacientes();
+            
+            // Se for terapeuta, filtrar apenas seus pacientes
+            if (this.currentUser.role === 'terapeuta') {
+                patients = allPatients.filter(p => p.terapeuta_responsavel_id === this.currentUser.data.id);
+                console.log('👥 [DEBUG] Filtered patients for therapist:', patients.length, 'patients');
+            } else {
+                patients = allPatients;
+                console.log('👥 [DEBUG] Loaded all patients:', patients.length, 'patients');
+            }
         } catch (error) {
             console.error('❌ [ERROR] Error loading patients:', error);
             return this.renderErrorView('Erro ao carregar pacientes', error.message);
@@ -831,7 +994,7 @@ class Application {
                     <div class="flex-1 min-w-0">
                         <h4 class="font-semibold truncate">${patient.nome}</h4>
                         <p class="text-sm text-slate-500">${Utils.calculateAge(patient.data_nascimento)} anos</p>
-                        <p class="text-xs text-slate-400">${patient.diagnostico_principal}</p>
+                        <p class="text-xs text-slate-400">${patient.diagnostico_principal || 'Diagnóstico não informado'}</p>
                     </div>
                 </div>
                 
@@ -850,6 +1013,9 @@ class Application {
                 <div class="flex gap-2">
                     <button onclick="App.openPatientProfileModal(${patient.id})" class="flex-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm rounded-md transition-colors">
                         Ver Perfil
+                    </button>
+                    <button onclick="App.editPatient(${patient.id})" class="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm rounded-md transition-colors">
+                        <i data-lucide="edit" class="w-3 h-3 inline"></i>
                     </button>
                     <button onclick="App.schedulePatient(${patient.id})" class="flex-1 px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-sm rounded-md transition-colors">
                         Agendar
@@ -888,7 +1054,7 @@ class Application {
                     <div class="flex-1 min-w-0">
                         <h4 class="font-semibold truncate">${patient.nome}</h4>
                         <p class="text-sm text-slate-500">${Utils.calculateAge(patient.data_nascimento)} anos</p>
-                        <p class="text-xs text-slate-400">${patient.diagnostico_principal}</p>
+                        <p class="text-xs text-slate-400">${patient.diagnostico_principal || 'Diagnóstico não informado'}</p>
                     </div>
                 </div>
                 
@@ -907,6 +1073,9 @@ class Application {
                 <div class="flex gap-2">
                     <button onclick="App.openPatientProfileModal(${patient.id})" class="flex-1 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm rounded-md transition-colors">
                         Ver Perfil
+                    </button>
+                    <button onclick="App.editPatient(${patient.id})" class="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm rounded-md transition-colors">
+                        <i data-lucide="edit" class="w-3 h-3 inline"></i>
                     </button>
                     <button onclick="App.schedulePatient(${patient.id})" class="flex-1 px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white text-sm rounded-md transition-colors">
                         Agendar
@@ -986,8 +1155,8 @@ class Application {
                                 <input type="date" id="data_nascimento" name="data_nascimento" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
                             </div>
                             <div>
-                                <label for="sexo" class="block text-sm font-medium text-slate-700">Sexo *</label>
-                                <select id="sexo" name="sexo" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                <label for="genero" class="block text-sm font-medium text-slate-700">Gênero *</label>
+                                <select id="genero" name="genero" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
                                     <option value="">Selecione</option>
                                     <option value="Masculino">Masculino</option>
                                     <option value="Feminino">Feminino</option>
@@ -1144,6 +1313,117 @@ class Application {
         `;
     }
 
+    renderNovoTerapeutaView() {
+        return `
+            <div class="card">
+                <div class="card-header">
+                    <div class="flex items-center gap-4">
+                        <button onclick="App.navigateTo('terapeutas')" class="btn-secondary text-sm">
+                            <i data-lucide="arrow-left" class="w-4 h-4 inline mr-1"></i>
+                            Voltar
+                        </button>
+                        <h3 class="card-title">Cadastrar Novo Terapeuta</h3>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="novo-terapeuta-form" class="space-y-6">
+                        <!-- Informações Básicas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Básicas</h4>
+                            </div>
+                            <div>
+                                <label for="terapeuta-nome" class="block text-sm font-medium text-slate-700">Nome Completo *</label>
+                                <input type="text" id="terapeuta-nome" name="nome" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="terapeuta-email" class="block text-sm font-medium text-slate-700">Email *</label>
+                                <input type="email" id="terapeuta-email" name="email" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="terapeuta-telefone" class="block text-sm font-medium text-slate-700">Telefone *</label>
+                                <input type="tel" id="terapeuta-telefone" name="telefone" required placeholder="(11) 99999-9999" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="terapeuta-crf" class="block text-sm font-medium text-slate-700">CRF/Registro Profissional *</label>
+                                <input type="text" id="terapeuta-crf" name="crf" required placeholder="CRF-123456-SP" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="terapeuta-senha" class="block text-sm font-medium text-slate-700">Senha Temporária *</label>
+                                <input type="password" id="terapeuta-senha" name="senha" required minlength="6" placeholder="Mínimo 6 caracteres" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                                <p class="text-xs text-slate-500 mt-1">O terapeuta deverá alterar a senha no primeiro login</p>
+                            </div>
+                            <div>
+                                <label for="terapeuta-confirmar-senha" class="block text-sm font-medium text-slate-700">Confirmar Senha *</label>
+                                <input type="password" id="terapeuta-confirmar-senha" name="confirmar_senha" required minlength="6" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                        </div>
+
+                        <!-- Especialidades -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Especialidades</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="especialidades" value="ABA" class="rounded text-teal-600 focus:ring-teal-500">
+                                    <span class="ml-2 text-sm">ABA</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="especialidades" value="Terapia Ocupacional" class="rounded text-teal-600 focus:ring-teal-500">
+                                    <span class="ml-2 text-sm">Terapia Ocupacional</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="especialidades" value="Fonoaudiologia" class="rounded text-teal-600 focus:ring-teal-500">
+                                    <span class="ml-2 text-sm">Fonoaudiologia</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="especialidades" value="Psicomotricidade" class="rounded text-teal-600 focus:ring-teal-500">
+                                    <span class="ml-2 text-sm">Psicomotricidade</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="especialidades" value="Musicoterapia" class="rounded text-teal-600 focus:ring-teal-500">
+                                    <span class="ml-2 text-sm">Musicoterapia</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="especialidades" value="Psicopedagogia" class="rounded text-teal-600 focus:ring-teal-500">
+                                    <span class="ml-2 text-sm">Psicopedagogia</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Horários de Trabalho -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Horários de Trabalho</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${['segunda', 'terca', 'quarta', 'quinta', 'sexta'].map(dia => `
+                                    <div class="flex items-center gap-3">
+                                        <label class="flex items-center min-w-[100px]">
+                                            <input type="checkbox" name="dia_${dia}" class="rounded text-teal-600 focus:ring-teal-500">
+                                            <span class="ml-2 text-sm capitalize">${dia.replace('terca', 'terça')}</span>
+                                        </label>
+                                        <input type="time" name="inicio_${dia}" class="px-2 py-1 border border-slate-300 rounded text-sm" disabled>
+                                        <span class="text-sm text-slate-500">às</span>
+                                        <input type="time" name="fim_${dia}" class="px-2 py-1 border border-slate-300 rounded text-sm" disabled>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                            <button type="button" onclick="App.navigateTo('terapeutas')" class="btn-secondary">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i data-lucide="user-plus" class="w-4 h-4 inline mr-2"></i>
+                                Cadastrar Terapeuta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    }
+
     async renderTerapeutasView() {
         const therapists = await dataManager.getTerapeutas();
         const appointments = await dataManager.getAgendamentos();
@@ -1189,11 +1469,15 @@ class Application {
                                     </div>
 
                                     <div class="flex gap-2">
-                                        <button onclick="this.viewTherapistSchedule(${therapist.id})" class="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-colors">
+                                        <button onclick="App.editTherapist(${therapist.id})" class="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md transition-colors">
+                                            <i data-lucide="edit" class="w-4 h-4 inline mr-1"></i>
+                                            Editar
+                                        </button>
+                                        <button onclick="App.viewTherapistSchedule(${therapist.id})" class="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-md transition-colors">
                                             <i data-lucide="calendar" class="w-4 h-4 inline mr-1"></i>
                                             Ver Agenda
                                         </button>
-                                        <button onclick="this.contactTherapist(${therapist.id})" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm rounded-md transition-colors">
+                                        <button onclick="App.contactTherapist(${therapist.id})" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm rounded-md transition-colors">
                                             <i data-lucide="phone" class="w-4 h-4"></i>
                                         </button>
                                     </div>
@@ -1240,7 +1524,7 @@ class Application {
                                             </div>
                                             <div>
                                                 <h4 class="font-semibold">${patient.nome}</h4>
-                                                <p class="text-sm text-slate-500">${patient.diagnostico_principal}</p>
+                                                <p class="text-sm text-slate-500">${patient.diagnostico_principal || 'Diagnóstico não informado'}</p>
                                                 <div class="flex gap-4 text-xs text-slate-400 mt-1">
                                                     ${lastSession ? `<span>Última: ${Utils.getRelativeTime(lastSession.datetime)}</span>` : ''}
                                                     ${nextSession ? `<span>Próxima: ${Utils.getRelativeTime(nextSession.datetime)}</span>` : ''}
@@ -1312,7 +1596,21 @@ class Application {
                                             ${availability.duracao}min
                                         </span>
                                     </div>
-                                    <p class="text-sm text-green-600">${Utils.getRelativeTime(availability.datetime)}</p>
+                                    <p class="text-sm text-green-600 mb-3">${Utils.getRelativeTime(availability.datetime)}</p>
+                                    
+                                    <!-- Action buttons -->
+                                    <div class="flex gap-2">
+                                        <button onclick="App.editarDisponibilidade(${availability.id})" 
+                                                class="text-xs px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors">
+                                            <i data-lucide="edit-2" class="w-3 h-3 inline mr-1"></i>
+                                            Editar
+                                        </button>
+                                        <button onclick="App.cancelarDisponibilidade(${availability.id})" 
+                                                class="text-xs px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-md transition-colors">
+                                            <i data-lucide="trash-2" class="w-3 h-3 inline mr-1"></i>
+                                            Cancelar
+                                        </button>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
@@ -1335,7 +1633,7 @@ class Application {
     async renderRelatoriosView() {
         console.log('📊 [DEBUG] Starting renderRelatoriosView');
         
-        const stats = dataManager.getEstatisticas();
+        const stats = await dataManager.getEstatisticas();
         let appointments = [];
         let therapists = [];
         
@@ -1482,8 +1780,8 @@ class Application {
     }
 
     // Export methods
-    exportPatientsData(format) {
-        const patients = dataManager.getPacientes().map(p => ({
+    async exportPatientsData(format) {
+        const patients = (await dataManager.getPacientes()).map(p => ({
             nome: p.nome,
             idade: Utils.calculateAge(p.data_nascimento),
             diagnostico: p.diagnostico_principal,
@@ -1501,13 +1799,14 @@ class Application {
         }
     }
 
-    exportReportData(type) {
+    async exportReportData(type) {
         const today = new Date().toISOString().split('T')[0];
         
         switch (type) {
             case 'appointments':
-                const appointments = dataManager.getAgendamentos().map(a => {
-                    const patient = dataManager.getPacienteById(a.pacienteId);
+                const agendamentosData = await dataManager.getAgendamentos();
+                const appointments = await Promise.all(agendamentosData.map(async a => {
+                    const patient = await dataManager.getPacienteById(a.pacienteId);
                     const therapist = dataManager.getTerapeutaById(a.terapeutaId);
                     
                     return {
@@ -1520,7 +1819,7 @@ class Application {
                         status: a.status,
                         observacoes: a.observacoes
                     };
-                });
+                }));
                 Utils.downloadCSV(appointments, `agendamentos_${today}.csv`);
                 break;
                 
@@ -1531,10 +1830,10 @@ class Application {
             case 'full':
                 const fullReport = {
                     data_geracao: new Date().toISOString(),
-                    estatisticas: dataManager.getEstatisticas(),
-                    pacientes: dataManager.getPacientes(),
-                    terapeutas: dataManager.getTerapeutas(),
-                    agendamentos: dataManager.getAgendamentos()
+                    estatisticas: await dataManager.getEstatisticas(),
+                    pacientes: await dataManager.getPacientes(),
+                    terapeutas: await dataManager.getTerapeutas(),
+                    agendamentos: await dataManager.getAgendamentos()
                 };
                 Utils.downloadJSON(fullReport, `relatorio_completo_${today}.json`);
                 break;
@@ -1553,6 +1852,464 @@ class Application {
         } else {
             Utils.showToast('Telefone não disponível', 'warning');
         }
+    }
+
+    async editTherapist(therapistId) {
+        try {
+            const therapist = await dataManager.getTerapeutaById(therapistId);
+            if (!therapist) {
+                Utils.showToast('Terapeuta não encontrado', 'error');
+                return;
+            }
+            
+            this.openEditTherapistModal(therapist);
+        } catch (error) {
+            console.error('Erro ao buscar dados do terapeuta:', error);
+            Utils.showToast('Erro ao carregar dados do terapeuta', 'error');
+        }
+    }
+
+    openEditTherapistModal(therapist) {
+        const modalHTML = `
+            <div class="modal-overlay fade-in" id="edit-therapist-modal">
+                <div class="modal-content w-full max-w-4xl p-6">
+                    <button onclick="Utils.closeModal()" class="modal-close">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                    
+                    <div class="modal-header">
+                        <h3 class="text-xl font-bold text-slate-800">Editar Terapeuta</h3>
+                        <p class="text-sm text-slate-500 mt-1">Atualize as informações do terapeuta</p>
+                    </div>
+
+                    <form id="edit-therapist-form" class="modal-body space-y-6" data-therapist-id="${therapist.id}">
+                        <!-- Informações Básicas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Básicas</h4>
+                            </div>
+                            <div>
+                                <label for="edit-therapist-nome" class="block text-sm font-medium text-slate-700">Nome Completo *</label>
+                                <input type="text" id="edit-therapist-nome" name="nome" required value="${therapist.nome}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="edit-therapist-email" class="block text-sm font-medium text-slate-700">Email *</label>
+                                <input type="email" id="edit-therapist-email" name="email" required value="${therapist.email}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="edit-therapist-telefone" class="block text-sm font-medium text-slate-700">Telefone *</label>
+                                <input type="tel" id="edit-therapist-telefone" name="telefone" required value="${therapist.telefone || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                            <div>
+                                <label for="edit-therapist-crf" class="block text-sm font-medium text-slate-700">CRF/Registro Profissional *</label>
+                                <input type="text" id="edit-therapist-crf" name="crf" required value="${therapist.crf || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                            </div>
+                        </div>
+
+                        <!-- Especialidades -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Especialidades</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                ${['ABA', 'Terapia Ocupacional', 'Fonoaudiologia', 'Psicomotricidade', 'Musicoterapia', 'Psicopedagogia'].map(esp => `
+                                    <label class="flex items-center">
+                                        <input type="checkbox" name="especialidades" value="${esp}" ${therapist.especialidades && therapist.especialidades.includes(esp) ? 'checked' : ''} class="rounded text-teal-600 focus:ring-teal-500">
+                                        <span class="ml-2 text-sm">${esp}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Horários de Trabalho -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Horários de Trabalho</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${['segunda', 'terca', 'quarta', 'quinta', 'sexta'].map(dia => {
+                                    const horarios = therapist.horario_trabalho && therapist.horario_trabalho[dia];
+                                    const isActive = horarios && horarios.length >= 2;
+                                    const inicio = isActive ? horarios[0] : '';
+                                    const fim = isActive ? horarios[1] : '';
+                                    
+                                    return `
+                                        <div class="flex items-center gap-3">
+                                            <label class="flex items-center min-w-[100px]">
+                                                <input type="checkbox" name="edit_dia_${dia}" ${isActive ? 'checked' : ''} class="rounded text-teal-600 focus:ring-teal-500">
+                                                <span class="ml-2 text-sm capitalize">${dia.replace('terca', 'terça')}</span>
+                                            </label>
+                                            <input type="time" name="edit_inicio_${dia}" value="${inicio}" class="px-2 py-1 border border-slate-300 rounded text-sm" ${!isActive ? 'disabled' : ''}>
+                                            <span class="text-sm text-slate-500">às</span>
+                                            <input type="time" name="edit_fim_${dia}" value="${fim}" class="px-2 py-1 border border-slate-300 rounded text-sm" ${!isActive ? 'disabled' : ''}>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Alterar Senha (Opcional) -->
+                        <div>
+                            <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Alterar Senha (Opcional)</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="edit-therapist-senha" class="block text-sm font-medium text-slate-700">Nova Senha</label>
+                                    <input type="password" id="edit-therapist-senha" name="nova_senha" minlength="6" placeholder="Deixe em branco para manter atual" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                                </div>
+                                <div>
+                                    <label for="edit-therapist-confirmar-senha" class="block text-sm font-medium text-slate-700">Confirmar Nova Senha</label>
+                                    <input type="password" id="edit-therapist-confirmar-senha" name="confirmar_nova_senha" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" onclick="Utils.closeModal()" class="btn-secondary">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i data-lucide="save" class="w-4 h-4 inline mr-2"></i>
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('modals-container').innerHTML = modalHTML;
+        lucide.createIcons();
+        
+        // Setup form handlers
+        this.setupEditTherapistForm();
+    }
+
+    setupEditTherapistForm() {
+        const form = document.getElementById('edit-therapist-form');
+        if (!form) return;
+
+        // Setup telefone mask
+        const telefoneInput = document.getElementById('edit-therapist-telefone');
+        telefoneInput?.addEventListener('input', (e) => {
+            e.target.value = Utils.formatPhone(e.target.value);
+        });
+
+        // Setup horários toggle
+        const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+        dias.forEach(dia => {
+            const checkbox = document.querySelector(`input[name="edit_dia_${dia}"]`);
+            const inicioInput = document.querySelector(`input[name="edit_inicio_${dia}"]`);
+            const fimInput = document.querySelector(`input[name="edit_fim_${dia}"]`);
+            
+            checkbox?.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                inicioInput.disabled = !isChecked;
+                fimInput.disabled = !isChecked;
+                
+                if (!isChecked) {
+                    inicioInput.value = '';
+                    fimInput.value = '';
+                }
+            });
+        });
+
+        // Form submission
+        form.addEventListener('submit', (e) => this.handleEditTherapistSubmit(e));
+    }
+
+    async handleEditTherapistSubmit(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const therapistId = e.target.dataset.therapistId;
+        
+        // Validar senhas se fornecidas
+        const novaSenha = formData.get('nova_senha');
+        const confirmarSenha = formData.get('confirmar_nova_senha');
+        
+        if (novaSenha && novaSenha !== confirmarSenha) {
+            Utils.showToast('Nova senha e confirmação devem ser iguais', 'error');
+            return;
+        }
+
+        const updatedData = this.extractUpdatedTherapistData(formData);
+        
+        try {
+            await dataManager.updateTerapeuta(therapistId, updatedData);
+            Utils.showToast('Terapeuta atualizado com sucesso!', 'success');
+            Utils.closeModal();
+            
+            // Recarregar a página de terapeutas
+            this.navigateTo('terapeutas');
+        } catch (error) {
+            console.error('Erro ao atualizar terapeuta:', error);
+            Utils.showToast(error.message || 'Erro ao atualizar terapeuta', 'error');
+        }
+    }
+
+    extractUpdatedTherapistData(formData) {
+        // Coletar especialidades
+        const especialidades = [];
+        formData.getAll('especialidades').forEach(esp => {
+            if (esp) especialidades.push(esp);
+        });
+
+        // Coletar horários de trabalho
+        const horarioTrabalho = {};
+        ['segunda', 'terca', 'quarta', 'quinta', 'sexta'].forEach(dia => {
+            const diaChecked = formData.get(`edit_dia_${dia}`);
+            if (diaChecked) {
+                const inicio = formData.get(`edit_inicio_${dia}`);
+                const fim = formData.get(`edit_fim_${dia}`);
+                if (inicio && fim) {
+                    horarioTrabalho[dia] = [inicio, fim];
+                }
+            }
+        });
+
+        const data = {
+            nome: formData.get('nome'),
+            email: formData.get('email'),
+            telefone: formData.get('telefone'),
+            crf: formData.get('crf'),
+            especialidades,
+            horario_trabalho: horarioTrabalho
+        };
+
+        // Adicionar senha apenas se fornecida
+        const novaSenha = formData.get('nova_senha');
+        if (novaSenha && novaSenha.length >= 6) {
+            data.senha_hash = novaSenha;
+        }
+
+        return data;
+    }
+
+    // Métodos para pacientes
+    async editPatient(patientId) {
+        try {
+            const patient = await dataManager.getPacienteById(patientId);
+            if (!patient) {
+                Utils.showToast('Paciente não encontrado', 'error');
+                return;
+            }
+            
+            this.openEditPatientModal(patient);
+        } catch (error) {
+            console.error('Erro ao buscar dados do paciente:', error);
+            Utils.showToast('Erro ao carregar dados do paciente', 'error');
+        }
+    }
+
+    openEditPatientModal(patient) {
+        const modalHTML = `
+            <div class="modal-overlay fade-in" id="edit-patient-modal">
+                <div class="modal-content w-full max-w-6xl p-6 max-h-screen overflow-y-auto">
+                    <button onclick="Utils.closeModal()" class="modal-close">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                    
+                    <div class="modal-header">
+                        <h3 class="text-xl font-bold text-slate-800">Editar Paciente</h3>
+                        <p class="text-sm text-slate-500 mt-1">Atualize as informações do paciente</p>
+                    </div>
+
+                    <form id="edit-patient-form" class="modal-body space-y-6" data-patient-id="${patient.id}">
+                        <!-- Informações Básicas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Informações Básicas</h4>
+                            </div>
+                            <div>
+                                <label for="edit-patient-nome" class="block text-sm font-medium text-slate-700">Nome Completo *</label>
+                                <input type="text" id="edit-patient-nome" name="nome" required value="${patient.nome}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-cpf" class="block text-sm font-medium text-slate-700">CPF *</label>
+                                <input type="text" id="edit-patient-cpf" name="cpf" required value="${patient.cpf}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-data-nascimento" class="block text-sm font-medium text-slate-700">Data de Nascimento *</label>
+                                <input type="date" id="edit-patient-data-nascimento" name="data_nascimento" required value="${patient.data_nascimento}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-genero" class="block text-sm font-medium text-slate-700">Sexo *</label>
+                                <select id="edit-patient-genero" name="genero" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="masculino" ${patient.genero === 'masculino' ? 'selected' : ''}>Masculino</option>
+                                    <option value="feminino" ${patient.genero === 'feminino' ? 'selected' : ''}>Feminino</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="edit-patient-telefone" class="block text-sm font-medium text-slate-700">Telefone *</label>
+                                <input type="tel" id="edit-patient-telefone" name="telefone" required value="${patient.telefone || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-email" class="block text-sm font-medium text-slate-700">Email *</label>
+                                <input type="email" id="edit-patient-email" name="email" required value="${patient.email}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Diagnóstico e Terapia -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Diagnóstico e Terapia</h4>
+                            </div>
+                            <div>
+                                <label for="edit-patient-diagnostico" class="block text-sm font-medium text-slate-700">Diagnóstico Principal *</label>
+                                <input type="text" id="edit-patient-diagnostico" name="diagnostico_principal" required value="${patient.diagnostico_principal || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-tipo-terapia" class="block text-sm font-medium text-slate-700">Tipo de Terapia *</label>
+                                <select id="edit-patient-tipo-terapia" name="tipo_terapia" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="ABA" ${patient.tipo_terapia === 'ABA' ? 'selected' : ''}>ABA</option>
+                                    <option value="Terapia Ocupacional" ${patient.tipo_terapia === 'Terapia Ocupacional' ? 'selected' : ''}>Terapia Ocupacional</option>
+                                    <option value="Fonoaudiologia" ${patient.tipo_terapia === 'Fonoaudiologia' ? 'selected' : ''}>Fonoaudiologia</option>
+                                    <option value="Psicomotricidade" ${patient.tipo_terapia === 'Psicomotricidade' ? 'selected' : ''}>Psicomotricidade</option>
+                                    <option value="Musicoterapia" ${patient.tipo_terapia === 'Musicoterapia' ? 'selected' : ''}>Musicoterapia</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="edit-patient-frequencia" class="block text-sm font-medium text-slate-700">Frequência Recomendada *</label>
+                                <select id="edit-patient-frequencia" name="frequencia_recomendada" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="1x por semana" ${patient.frequencia_recomendada === '1x por semana' ? 'selected' : ''}>1x por semana</option>
+                                    <option value="2x por semana" ${patient.frequencia_recomendada === '2x por semana' ? 'selected' : ''}>2x por semana</option>
+                                    <option value="3x por semana" ${patient.frequencia_recomendada === '3x por semana' ? 'selected' : ''}>3x por semana</option>
+                                    <option value="4x por semana" ${patient.frequencia_recomendada === '4x por semana' ? 'selected' : ''}>4x por semana</option>
+                                    <option value="5x por semana" ${patient.frequencia_recomendada === '5x por semana' ? 'selected' : ''}>5x por semana</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="edit-patient-escola" class="block text-sm font-medium text-slate-700">Escola</label>
+                                <input type="text" id="edit-patient-escola" name="escola" value="${patient.escola || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Endereço -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-3">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Endereço</h4>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="edit-patient-endereco" class="block text-sm font-medium text-slate-700">Endereço</label>
+                                <input type="text" id="edit-patient-endereco" name="endereco" value="${patient.endereco || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-cidade" class="block text-sm font-medium text-slate-700">Cidade</label>
+                                <input type="text" id="edit-patient-cidade" name="cidade" value="${patient.cidade || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-estado" class="block text-sm font-medium text-slate-700">Estado</label>
+                                <input type="text" id="edit-patient-estado" name="estado" value="${patient.estado || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-cep" class="block text-sm font-medium text-slate-700">CEP</label>
+                                <input type="text" id="edit-patient-cep" name="cep" value="${patient.cep || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <!-- Responsável -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <h4 class="font-semibold text-slate-700 mb-3 border-b border-slate-200 pb-2">Responsável</h4>
+                            </div>
+                            <div>
+                                <label for="edit-patient-nome-responsavel" class="block text-sm font-medium text-slate-700">Nome do Responsável</label>
+                                <input type="text" id="edit-patient-nome-responsavel" name="nome_responsavel" value="${patient.nome_responsavel || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                            <div>
+                                <label for="edit-patient-contato-responsavel" class="block text-sm font-medium text-slate-700">Contato do Responsável</label>
+                                <input type="tel" id="edit-patient-contato-responsavel" name="contato_responsavel" value="${patient.contato_responsavel || ''}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" onclick="Utils.closeModal()" class="btn-secondary">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i data-lucide="save" class="w-4 h-4 inline mr-2"></i>
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('modals-container').innerHTML = modalHTML;
+        lucide.createIcons();
+        
+        // Setup form handlers
+        this.setupEditPatientForm();
+    }
+
+    setupEditPatientForm() {
+        const form = document.getElementById('edit-patient-form');
+        if (!form) return;
+
+        // Setup máscaras de formatação
+        const cpfInput = document.getElementById('edit-patient-cpf');
+        const telefoneInput = document.getElementById('edit-patient-telefone');
+        const cepInput = document.getElementById('edit-patient-cep');
+        const contatoResponsavelInput = document.getElementById('edit-patient-contato-responsavel');
+
+        cpfInput?.addEventListener('input', (e) => {
+            e.target.value = Utils.formatCPF(e.target.value);
+        });
+
+        telefoneInput?.addEventListener('input', (e) => {
+            e.target.value = Utils.formatPhone(e.target.value);
+        });
+
+        cepInput?.addEventListener('input', (e) => {
+            e.target.value = Utils.formatCEP(e.target.value);
+        });
+
+        contatoResponsavelInput?.addEventListener('input', (e) => {
+            e.target.value = Utils.formatPhone(e.target.value);
+        });
+
+        // Form submission
+        form.addEventListener('submit', (e) => this.handleEditPatientSubmit(e));
+    }
+
+    async handleEditPatientSubmit(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const patientId = e.target.dataset.patientId;
+        
+        const updatedData = this.extractUpdatedPatientData(formData);
+        
+        try {
+            await dataManager.updatePaciente(patientId, updatedData);
+            Utils.showToast('Paciente atualizado com sucesso!', 'success');
+            Utils.closeModal();
+            
+            // Recarregar a página de pacientes
+            this.navigateTo('pacientes');
+        } catch (error) {
+            console.error('Erro ao atualizar paciente:', error);
+            Utils.showToast(error.message || 'Erro ao atualizar paciente', 'error');
+        }
+    }
+
+    extractUpdatedPatientData(formData) {
+        return {
+            nome: formData.get('nome'),
+            cpf: formData.get('cpf'),
+            data_nascimento: formData.get('data_nascimento'),
+            genero: formData.get('genero'),
+            telefone: formData.get('telefone'),
+            email: formData.get('email'),
+            diagnostico_principal: formData.get('diagnostico_principal'),
+            tipo_terapia: formData.get('tipo_terapia'),
+            frequencia_recomendada: formData.get('frequencia_recomendada'),
+            escola: formData.get('escola'),
+            endereco: formData.get('endereco'),
+            cidade: formData.get('cidade'),
+            estado: formData.get('estado'),
+            cep: formData.get('cep'),
+            nome_responsavel: formData.get('nome_responsavel'),
+            contato_responsavel: formData.get('contato_responsavel')
+        };
     }
 
     // Cadastro de Pacientes
@@ -1625,7 +2382,7 @@ class Application {
             nome: formData.get('nome'),
             cpf: formData.get('cpf'),
             data_nascimento: formData.get('data_nascimento'),
-            sexo: formData.get('sexo'),
+            genero: formData.get('genero'),
             telefone: formData.get('telefone'),
             email_responsavel: formData.get('email_responsavel'),
             diagnostico_principal: formData.get('diagnostico_principal'),
@@ -1674,7 +2431,7 @@ class Application {
             errors.push('Data de nascimento é obrigatória');
         }
         
-        if (!data.sexo) {
+        if (!data.genero) {
             errors.push('Sexo é obrigatório');
         }
         
@@ -1730,7 +2487,258 @@ class Application {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(email);
     }
+
+    // Métodos para terapeutas
+    initializeNovoTerapeutaForm() {
+        const form = document.getElementById('novo-terapeuta-form');
+        if (!form) return;
+
+        console.log('🩺 [FORM] Initializing novo terapeuta form');
+        
+        // Adicionar máscaras de formatação
+        this.setupTerapeutaFormMasks();
+        
+        // Setup horários de trabalho toggle
+        this.setupHorariosTrabalho();
+        
+        // Submit do formulário
+        form.addEventListener('submit', async (e) => this.handleNovoTerapeutaSubmit(e));
+    }
+
+    setupTerapeutaFormMasks() {
+        const telefoneInput = document.getElementById('terapeuta-telefone');
+        telefoneInput?.addEventListener('input', (e) => {
+            e.target.value = Utils.formatPhone(e.target.value);
+        });
+    }
+
+    setupHorariosTrabalho() {
+        const dias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+        
+        dias.forEach(dia => {
+            const checkbox = document.querySelector(`input[name="dia_${dia}"]`);
+            const inicioInput = document.querySelector(`input[name="inicio_${dia}"]`);
+            const fimInput = document.querySelector(`input[name="fim_${dia}"]`);
+            
+            checkbox?.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                inicioInput.disabled = !isChecked;
+                fimInput.disabled = !isChecked;
+                
+                if (isChecked) {
+                    inicioInput.value = '08:00';
+                    fimInput.value = '17:00';
+                } else {
+                    inicioInput.value = '';
+                    fimInput.value = '';
+                }
+            });
+        });
+    }
+
+    async handleNovoTerapeutaSubmit(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        // Validar confirmação de senha
+        const senha = formData.get('senha');
+        const confirmarSenha = formData.get('confirmar_senha');
+        
+        if (senha !== confirmarSenha) {
+            Utils.showToast('Senha e confirmação devem ser iguais', 'error');
+            return;
+        }
+        
+        const terapeutaData = this.extractTherapistDataFromForm(formData);
+
+        // Validação
+        const validationErrors = this.validateTherapistData(terapeutaData);
+        if (validationErrors.length > 0) {
+            Utils.showToast(`Erros no formulário:\n${validationErrors.join('\n')}`, 'error');
+            return;
+        }
+
+        // Criar terapeuta via API
+        try {
+            await dataManager.addTerapeuta(terapeutaData);
+            Utils.showToast('Terapeuta cadastrado com sucesso!', 'success');
+            this.navigateTo('terapeutas');
+        } catch (error) {
+            console.error('Erro ao cadastrar terapeuta:', error);
+            Utils.showToast(error.message || 'Erro ao cadastrar terapeuta. Tente novamente.', 'error');
+        }
+    }
+
+    extractTherapistDataFromForm(formData) {
+        // Coletar especialidades
+        const especialidades = [];
+        formData.getAll('especialidades').forEach(esp => {
+            if (esp) especialidades.push(esp);
+        });
+
+        // Coletar horários de trabalho
+        const horarioTrabalho = {};
+        ['segunda', 'terca', 'quarta', 'quinta', 'sexta'].forEach(dia => {
+            const diaChecked = formData.get(`dia_${dia}`);
+            if (diaChecked) {
+                const inicio = formData.get(`inicio_${dia}`);
+                const fim = formData.get(`fim_${dia}`);
+                if (inicio && fim) {
+                    horarioTrabalho[dia] = [inicio, fim];
+                }
+            }
+        });
+
+        return {
+            nome: formData.get('nome'),
+            email: formData.get('email'),
+            telefone: formData.get('telefone'),
+            crf: formData.get('crf'),
+            senha_hash: formData.get('senha'), // Será criptografada no backend
+            especialidades,
+            horario_trabalho: horarioTrabalho,
+            avatar: `https://placehold.co/100x100/a7f3d0/15803d?text=${formData.get('nome').split(' ').map(n => n[0]).join('').substring(0,2)}`,
+            status: 'ativo'
+        };
+    }
+
+    validateTherapistData(data) {
+        const errors = [];
+        
+        if (!data.nome || data.nome.trim().length < 3) {
+            errors.push('Nome deve ter pelo menos 3 caracteres');
+        }
+        
+        if (!data.email || !this.validateEmail(data.email)) {
+            errors.push('Email inválido');
+        }
+        
+        if (!data.telefone || data.telefone.length < 14) {
+            errors.push('Telefone inválido');
+        }
+        
+        if (!data.crf || data.crf.trim().length < 5) {
+            errors.push('CRF/Registro profissional é obrigatório');
+        }
+        
+        if (!data.senha_hash || data.senha_hash.length < 6) {
+            errors.push('Senha deve ter pelo menos 6 caracteres');
+        }
+        
+        if (!data.especialidades || data.especialidades.length === 0) {
+            errors.push('Pelo menos uma especialidade deve ser selecionada');
+        }
+        
+        if (!data.horario_trabalho || Object.keys(data.horario_trabalho).length === 0) {
+            errors.push('Pelo menos um dia de trabalho deve ser configurado');
+        }
+        
+        return errors;
+    }
+
+    // Métodos para gerenciar disponibilidades
+    async editarDisponibilidade(disponibilidadeId) {
+        try {
+            // Buscar disponibilidade atual
+            const disponibilidades = await dataManager.getDisponibilidades({ terapeutaId: this.currentUser.data.id });
+            const disponibilidade = disponibilidades.find(d => d.id === disponibilidadeId);
+            
+            if (!disponibilidade) {
+                Utils.showToast('Disponibilidade não encontrada', 'error');
+                return;
+            }
+            
+            const currentDate = new Date(disponibilidade.datetime);
+            const formattedDate = currentDate.toISOString().split('T')[0];
+            const formattedTime = currentDate.toTimeString().substring(0, 5);
+            
+            // Criar modal de edição
+            const modalHTML = `
+                <div class="modal-overlay">
+                    <div class="modal-container max-w-md">
+                        <div class="modal-header">
+                            <h3 class="text-xl font-bold text-slate-800">Editar Disponibilidade</h3>
+                            <p class="text-sm text-slate-500 mt-1">Modifique os dados da disponibilidade</p>
+                        </div>
+
+                        <form data-form-type="edit-availability" data-availability-id="${disponibilidadeId}" class="modal-body space-y-4">
+                            <div class="form-group">
+                                <label for="edit-availability-date" class="form-label">Data *</label>
+                                <input 
+                                    type="date" 
+                                    id="edit-availability-date" 
+                                    name="date" 
+                                    required 
+                                    value="${formattedDate}"
+                                    class="form-input"
+                                    min="${new Date().toISOString().split('T')[0]}"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="edit-availability-time" class="form-label">Horário *</label>
+                                <input 
+                                    type="time" 
+                                    id="edit-availability-time" 
+                                    name="time" 
+                                    required 
+                                    value="${formattedTime}"
+                                    class="form-input"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="edit-availability-duration" class="form-label">Duração (minutos)</label>
+                                <select id="edit-availability-duration" name="duration" class="form-input">
+                                    <option value="45" ${disponibilidade.duracao === 45 ? 'selected' : ''}>45 minutos</option>
+                                    <option value="60" ${disponibilidade.duracao === 60 ? 'selected' : ''}>60 minutos</option>
+                                    <option value="90" ${disponibilidade.duracao === 90 ? 'selected' : ''}>90 minutos</option>
+                                </select>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" onclick="Utils.closeModal()" class="btn-secondary">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="btn-primary">
+                                    <i data-lucide="save" class="w-4 h-4 inline mr-2"></i>
+                                    Salvar Alterações
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            Utils.openModal(modalHTML);
+            
+        } catch (error) {
+            console.error('Erro ao editar disponibilidade:', error);
+            Utils.showToast('Erro ao carregar dados da disponibilidade', 'error');
+        }
+    }
+
+    async cancelarDisponibilidade(disponibilidadeId) {
+        if (!confirm('Tem certeza que deseja cancelar esta disponibilidade?')) {
+            return;
+        }
+        
+        try {
+            // Implementar chamada para API para deletar disponibilidade
+            await dataManager.removerDisponibilidade(disponibilidadeId);
+            
+            Utils.showToast('Disponibilidade cancelada com sucesso!', 'success');
+            
+            // Recarregar a página de disponibilidades
+            await this.navigateTo('disponibilidades');
+            
+        } catch (error) {
+            console.error('Erro ao cancelar disponibilidade:', error);
+            Utils.showToast('Erro ao cancelar disponibilidade', 'error');
+        }
+    }
 }
 
 // Global instance
 const App = new Application();
+window.App = App;

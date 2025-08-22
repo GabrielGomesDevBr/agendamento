@@ -8,6 +8,7 @@ const getAllPacientes = async (req, res) => {
         id, nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
         telefone, email, nome_responsavel, contato_responsavel,
         plano_saude, numero_carteirinha, historico_medico, status,
+        diagnostico_principal, tipo_terapia, frequencia_recomendada, escola,
         terapeuta_responsavel_id, supervisor_responsavel_id,
         created_at, updated_at
       FROM pacientes 
@@ -38,6 +39,7 @@ const getPacienteById = async (req, res) => {
         id, nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
         telefone, email, nome_responsavel, contato_responsavel,
         plano_saude, numero_carteirinha, historico_medico, status,
+        diagnostico_principal, tipo_terapia, frequencia_recomendada, escola,
         terapeuta_responsavel_id, supervisor_responsavel_id,
         created_at, updated_at
       FROM pacientes 
@@ -71,6 +73,7 @@ const createPaciente = async (req, res) => {
       nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
       telefone, email, senha_hash, nome_responsavel, contato_responsavel,
       plano_saude, numero_carteirinha, historico_medico,
+      diagnostico_principal, tipo_terapia, frequencia_recomendada, escola,
       terapeuta_responsavel_id, supervisor_responsavel_id
     } = req.body;
 
@@ -93,13 +96,15 @@ const createPaciente = async (req, res) => {
         nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
         telefone, email, senha_hash, nome_responsavel, contato_responsavel,
         plano_saude, numero_carteirinha, historico_medico, status,
+        diagnostico_principal, tipo_terapia, frequencia_recomendada, escola,
         terapeuta_responsavel_id, supervisor_responsavel_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       RETURNING *
     `, [
       nome, data_nascimento, genero, cpf, rg, endereco, cidade, estado, cep,
       telefone, email, senha_hash, nome_responsavel, contato_responsavel,
       plano_saude, numero_carteirinha, historico_medico, 'ativo',
+      diagnostico_principal, tipo_terapia, frequencia_recomendada, escola,
       terapeuta_responsavel_id, supervisor_responsavel_id
     ]);
 
@@ -121,7 +126,7 @@ const updatePaciente = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
+      nome, cpf, data_nascimento, genero, telefone, email_responsavel,
       endereco, responsavel, diagnostico_principal, diagnosticos_secundarios,
       medicacoes, alergias, tipo_terapia, frequencia_recomendada,
       preferencias, gatilhos, estrategias_eficazes, observacoes, escola, status
@@ -161,7 +166,7 @@ const updatePaciente = async (req, res) => {
         nome = COALESCE($2, nome),
         cpf = COALESCE($3, cpf),
         data_nascimento = COALESCE($4, data_nascimento),
-        sexo = COALESCE($5, sexo),
+        genero = COALESCE($5, genero),
         telefone = COALESCE($6, telefone),
         email_responsavel = COALESCE($7, email_responsavel),
         endereco = COALESCE($8, endereco),
@@ -182,7 +187,7 @@ const updatePaciente = async (req, res) => {
       WHERE id = $1
       RETURNING *
     `, [
-      id, nome, cpf, data_nascimento, sexo, telefone, email_responsavel,
+      id, nome, cpf, data_nascimento, genero, telefone, email_responsavel,
       endereco ? JSON.stringify(endereco) : null,
       responsavel ? JSON.stringify(responsavel) : null,
       diagnostico_principal, diagnosticos_secundarios, medicacoes, alergias,

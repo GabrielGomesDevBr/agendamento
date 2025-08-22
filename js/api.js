@@ -151,6 +151,21 @@ class ApiClient {
       method: 'DELETE'
     });
   }
+
+  // Terapeutas endpoints
+  async createTerapeuta(terapeutaData) {
+    return await this.request('/terapeutas', {
+      method: 'POST',
+      body: JSON.stringify(terapeutaData)
+    });
+  }
+
+  async updateTerapeuta(id, terapeutaData) {
+    return await this.request(`/terapeutas/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(terapeutaData)
+    });
+  }
 }
 
 // Custom error class for API errors

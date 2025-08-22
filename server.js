@@ -23,10 +23,10 @@ app.use(helmet({
   }
 }));
 
-// Rate limiting
+// Rate limiting - configuração para desenvolvimento
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por IP por janela
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 requests em desenvolvimento
   message: {
     error: 'Muitas tentativas, tente novamente em 15 minutos',
     code: 'RATE_LIMIT_EXCEEDED'

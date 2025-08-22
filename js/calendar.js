@@ -14,6 +14,13 @@ class CalendarManager {
 
     init() {
         this.setupEventListeners();
+        
+        // Check if there's a patient selected for scheduling
+        if (window.selectedPatientForScheduling) {
+            this.selectedPatientId = window.selectedPatientForScheduling;
+            // Clear the global variable
+            delete window.selectedPatientForScheduling;
+        }
     }
 
     setupEventListeners() {
@@ -96,12 +103,14 @@ class CalendarManager {
 
                             <!-- Filters -->
                             <div class="flex gap-2">
-                                <select name="terapeutaId" data-calendar-filter class="px-3 py-1 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500">
-                                    <option value="">Todos os terapeutas</option>
-                                    ${(await dataManager.getTerapeutas()).map(t => 
-                                        `<option value="${t.id}" ${this.filters.terapeutaId == t.id ? 'selected' : ''}>${t.nome}</option>`
-                                    ).join('')}
-                                </select>
+                                ${App.currentUser && App.currentUser.role === 'supervisor' ? `
+                                    <select name="terapeutaId" data-calendar-filter class="px-3 py-1 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                        <option value="">Todos os terapeutas</option>
+                                        ${(await dataManager.getTerapeutas()).map(t => 
+                                            `<option value="${t.id}" ${this.filters.terapeutaId == t.id ? 'selected' : ''}>${t.nome}</option>`
+                                        ).join('')}
+                                    </select>
+                                ` : ''}
 
                                 ${this.getTerapeutaActions()}
                             </div>
@@ -255,7 +264,7 @@ class CalendarManager {
                      onclick="handleEventClick(${event.id}, 'appointment')">
                     <div class="font-semibold">${time}</div>
                     <div class="truncate">${patient ? patient.nome.split(' ')[0] : 'Paciente'}</div>
-                    <div class="text-xs opacity-75">${therapist ? therapist.name.split(' ')[1] : 'Terapeuta'}</div>
+                    <div class="text-xs opacity-75">${therapist ? therapist.nome.split(' ')[1] : 'Terapeuta'}</div>
                 </div>
             `;
         } else if (type === 'availability') {
@@ -269,7 +278,7 @@ class CalendarManager {
                      onclick="handleEventClick(${event.id}, 'availability')">
                     <div class="font-semibold">${time}</div>
                     <div class="text-green-700">Disponível</div>
-                    <div class="text-xs opacity-75">${therapist ? therapist.name.split(' ')[1] : 'Terapeuta'}</div>
+                    <div class="text-xs opacity-75">${therapist ? therapist.nome.split(' ')[1] : 'Terapeuta'}</div>
                 </div>
             `;
         }
@@ -280,14 +289,148 @@ class CalendarManager {
     handleEventClick(eventId, eventType) {
         if (eventType === 'appointment' && App.currentUser.role === 'terapeuta') {
             // Therapist can update appointment status
-            openStatusUpdateModal(eventId);
+            this.openStatusUpdateModal(eventId);
         } else if (eventType === 'availability' && App.currentUser.role === 'supervisor') {
             // Supervisor can book appointment
-            openBookingModal(eventId);
+            this.openBookingModal(eventId);
         } else if (eventType === 'appointment' && App.currentUser.role === 'supervisor') {
             // Supervisor can view appointment details
-            openAppointmentDetailsModal(eventId);
+            this.openAppointmentDetailsModal(eventId);
         }
+    }
+
+    async openBookingModal(availabilityId) {
+        try {
+            const availability = await this.getAvailabilityById(availabilityId);
+            const therapist = dataManager.getTerapeutaById(availability.terapeutaId);
+            const patients = await dataManager.getPacientes();
+            
+            const modalHTML = `
+                <div class="modal-overlay fade-in" id="booking-modal">
+                    <div class="modal-content w-full max-w-2xl p-6">
+                        <button onclick="Utils.closeModal()" class="modal-close">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                        
+                        <div class="modal-header">
+                            <h3 class="text-xl font-bold text-slate-800">Agendar Consulta</h3>
+                            <p class="text-sm text-slate-500 mt-1">Disponibilidade: ${Utils.formatDateTime(availability.datetime)}</p>
+                        </div>
+
+                        <form id="booking-form" class="modal-body space-y-4" data-availability-id="${availabilityId}">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700">Terapeuta</label>
+                                <input type="text" value="${therapist ? therapist.nome : 'Terapeuta'}" disabled class="mt-1 block w-full px-3 py-2 bg-gray-100 border border-slate-300 rounded-md">
+                            </div>
+
+                            <div>
+                                <label for="patient-select" class="block text-sm font-medium text-slate-700">Paciente *</label>
+                                <select id="patient-select" name="pacienteId" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione um paciente</option>
+                                    ${patients.map(p => `<option value="${p.id}" ${this.selectedPatientId && this.selectedPatientId == p.id ? 'selected' : ''}>${p.nome}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="tipo-terapia" class="block text-sm font-medium text-slate-700">Tipo de Terapia *</label>
+                                <select id="tipo-terapia" name="tipoTerapia" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="ABA">ABA</option>
+                                    <option value="Terapia Ocupacional">Terapia Ocupacional</option>
+                                    <option value="Fonoaudiologia">Fonoaudiologia</option>
+                                    <option value="Psicomotricidade">Psicomotricidade</option>
+                                    <option value="Musicoterapia">Musicoterapia</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="local" class="block text-sm font-medium text-slate-700">Local *</label>
+                                <select id="local" name="local" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                                    <option value="">Selecione</option>
+                                    <option value="Sala 1">Sala 1</option>
+                                    <option value="Sala 2">Sala 2</option>
+                                    <option value="Sala 3">Sala 3</option>
+                                    <option value="Online">Online</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="observacoes" class="block text-sm font-medium text-slate-700">Observações</label>
+                                <textarea id="observacoes" name="observacoes" rows="3" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" onclick="Utils.closeModal()" class="btn-secondary">
+                                    Cancelar
+                                </button>
+                                <button type="submit" class="btn-primary">
+                                    <i data-lucide="calendar-plus" class="w-4 h-4 inline mr-2"></i>
+                                    Confirmar Agendamento
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modals-container').innerHTML = modalHTML;
+            lucide.createIcons();
+            
+            // Setup form submission
+            document.getElementById('booking-form').addEventListener('submit', (e) => this.handleBookingSubmit(e));
+        } catch (error) {
+            console.error('Erro ao abrir modal de agendamento:', error);
+            Utils.showToast('Erro ao carregar dados para agendamento', 'error');
+        }
+    }
+
+    async getAvailabilityById(availabilityId) {
+        const availabilities = await dataManager.getDisponibilidades();
+        return availabilities.find(a => a.id === parseInt(availabilityId));
+    }
+
+    async handleBookingSubmit(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const availabilityId = e.target.dataset.availabilityId;
+        
+        try {
+            const availability = await this.getAvailabilityById(availabilityId);
+            
+            const appointmentData = {
+                pacienteId: parseInt(formData.get('pacienteId')),
+                terapeutaId: availability.terapeutaId,
+                datetime: availability.datetime,
+                duracao: availability.duracao || 60,
+                tipoTerapia: formData.get('tipoTerapia'),
+                local: formData.get('local'),
+                observacoes: formData.get('observacoes'),
+                status: 'agendado'
+            };
+
+            // Criar agendamento
+            await dataManager.adicionarAgendamento(appointmentData);
+            
+            // Remover disponibilidade
+            await dataManager.removerDisponibilidade(availabilityId);
+            
+            Utils.showToast('Consulta agendada com sucesso!', 'success');
+            Utils.closeModal();
+            
+            // Recarregar calendário
+            this.renderCalendarEvents();
+        } catch (error) {
+            console.error('Erro ao agendar consulta:', error);
+            Utils.showToast('Erro ao agendar consulta', 'error');
+        }
+    }
+
+    openStatusUpdateModal(appointmentId) {
+        Utils.showToast('Funcionalidade em desenvolvimento', 'info');
+    }
+
+    openAppointmentDetailsModal(appointmentId) {
+        Utils.showToast('Funcionalidade em desenvolvimento', 'info');
     }
 
     // Navigation methods
@@ -361,7 +504,7 @@ class CalendarManager {
                 data: Utils.formatDate(appointment.datetime),
                 horario: Utils.formatTime(appointment.datetime),
                 paciente: patient ? patient.nome : '',
-                terapeuta: therapist ? therapist.name : '',
+                terapeuta: therapist ? therapist.nome : '',
                 tipo_terapia: appointment.tipoTerapia,
                 local: appointment.local,
                 status: appointment.status,
@@ -384,6 +527,7 @@ class CalendarManager {
 
 // Global instance
 const calendarManager = new CalendarManager();
+window.calendarManager = calendarManager;
 
 // Make handleEventClick available globally
 window.handleEventClick = function(eventId, eventType) {

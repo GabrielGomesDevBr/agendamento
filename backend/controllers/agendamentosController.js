@@ -162,7 +162,7 @@ const createAgendamento = async (req, res) => {
 
     // Verificar se existe disponibilidade
     const { rows: disponibilidade } = await pool.query(
-      'SELECT id FROM disponibilidades WHERE terapeuta_id = $1 AND data_hora = $2 AND status = $3',
+      'SELECT id FROM disponibilidades WHERE terapeuta_id = $1 AND DATE_TRUNC(\'minute\', data_hora) = DATE_TRUNC(\'minute\', $2::timestamp) AND status = $3',
       [terapeuta_id, data_hora, 'disponivel']
     );
 
@@ -175,7 +175,7 @@ const createAgendamento = async (req, res) => {
 
     // Verificar conflitos
     const { rows: conflitos } = await pool.query(
-      'SELECT id FROM agendamentos WHERE terapeuta_id = $1 AND data_hora = $2 AND status != $3',
+      'SELECT id FROM agendamentos WHERE terapeuta_id = $1 AND DATE_TRUNC(\'minute\', data_hora) = DATE_TRUNC(\'minute\', $2::timestamp) AND status != $3',
       [terapeuta_id, data_hora, 'cancelado']
     );
 
@@ -196,7 +196,7 @@ const createAgendamento = async (req, res) => {
 
     // Remover disponibilidade
     await pool.query(
-      'DELETE FROM disponibilidades WHERE terapeuta_id = $1 AND data_hora = $2',
+      'DELETE FROM disponibilidades WHERE terapeuta_id = $1 AND DATE_TRUNC(\'minute\', data_hora) = DATE_TRUNC(\'minute\', $2::timestamp)',
       [terapeuta_id, data_hora]
     );
 
