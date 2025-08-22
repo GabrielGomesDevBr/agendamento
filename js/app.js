@@ -431,6 +431,10 @@ class Application {
                     <i data-lucide="bar-chart-3" class="nav-icon"></i>
                     <span>Relatórios</span>
                 </a>
+                <a href="#" data-navigate="perfil" class="nav-item" data-view="perfil">
+                    <i data-lucide="user" class="nav-icon"></i>
+                    <span>Ver Perfil</span>
+                </a>
             `;
         } else {
             navItems += `
@@ -480,7 +484,8 @@ class Application {
             terapeutas: 'Equipe de Terapeutas',
             relatorios: 'Relatórios',
             'meus-pacientes': 'Meus Pacientes',
-            disponibilidades: 'Minhas Disponibilidades'
+            disponibilidades: 'Minhas Disponibilidades',
+            perfil: 'Meu Perfil'
         };
         
         document.getElementById('page-title').textContent = viewTitles[view] || 'CliniAgende';
@@ -547,6 +552,9 @@ class Application {
             case 'relatorios':
                 container.innerHTML = await this.renderRelatoriosView();
                 break;
+            case 'perfil':
+                container.innerHTML = await this.renderPerfilView();
+                break;
             default:
                 container.innerHTML = '<div class="text-center py-12"><p class="text-slate-500">Página não encontrada</p></div>';
         }
@@ -585,9 +593,334 @@ class Application {
     }
 
     // Patient actions (placeholders for now)
-    openPatientProfileModal(patientId) {
-        console.log('👤 [ACTION] Opening patient profile modal for ID:', patientId);
-        Utils.showToast('Funcionalidade em desenvolvimento', 'info');
+    async openPatientProfileModal(patientId) {
+        try {
+            console.log('👤 [ACTION] Opening patient profile modal for ID:', patientId);
+            
+            // Buscar dados do paciente
+            const response = await apiClient.getPacienteById(patientId);
+            const patient = response.data || response;
+            
+            // Criar e exibir modal
+            this.showPatientProfileModal(patient);
+            
+        } catch (error) {
+            console.error('Erro ao carregar perfil do paciente:', error);
+            Utils.showToast('Erro ao carregar perfil do paciente', 'error');
+        }
+    }
+
+    showPatientProfileModal(patient) {
+        const container = document.getElementById('modals-container');
+        const isSupervisor = this.currentUser.role === 'supervisor';
+        
+        // Verificar se o patient existe e tem as propriedades básicas
+        if (!patient || !patient.nome) {
+            Utils.showToast('Erro: dados do paciente incompletos', 'error');
+            return;
+        }
+        
+        // Calcular idade
+        const idade = patient.data_nascimento ? 
+            Math.floor((new Date() - new Date(patient.data_nascimento)) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+            
+        // Buscar nome do terapeuta responsável
+        const terapeuta = patient.terapeuta_responsavel_id ? 
+            dataManager.getTerapeutaById(patient.terapeuta_responsavel_id) : null;
+
+        container.innerHTML = `
+            <div class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                        <div class="flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                                <span class="text-xl font-bold text-blue-600">${Utils.getInitials(patient.nome)}</span>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800">${patient.nome}</h2>
+                                <div class="flex items-center gap-4 text-sm text-slate-500 mt-1">
+                                    ${idade ? `<span>${idade} anos</span>` : ''}
+                                    ${patient.genero ? `<span>• ${patient.genero}</span>` : ''}
+                                    ${patient.diagnostico_principal ? `<span>• ${patient.diagnostico_principal}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="Utils.closeModal()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                            <i data-lucide="x" class="w-6 h-6 text-slate-400"></i>
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Informações Pessoais -->
+                            <div class="space-y-6">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                        <i data-lucide="user" class="w-5 h-5 text-blue-500"></i>
+                                        Informações Pessoais
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Nome Completo</label>
+                                                <p class="text-slate-800">${patient.nome}</p>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">CPF</label>
+                                                <p class="text-slate-800">${patient.cpf || 'Não informado'}</p>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Data de Nascimento</label>
+                                                <p class="text-slate-800">${patient.data_nascimento ? new Date(patient.data_nascimento).toLocaleDateString('pt-BR') : 'Não informada'}</p>
+                                            </div>
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Gênero</label>
+                                                <p class="text-slate-800">${patient.genero || 'Não informado'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Contato -->
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                        <i data-lucide="phone" class="w-5 h-5 text-green-500"></i>
+                                        Contato
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-500">Email</label>
+                                            <p class="text-slate-800">${patient.email}</p>
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-500">Telefone</label>
+                                            <p class="text-slate-800">${patient.telefone || 'Não informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-500">Endereço</label>
+                                            <p class="text-slate-800">${patient.endereco || 'Não informado'}</p>
+                                        </div>
+                                        ${patient.cidade || patient.estado || patient.cep ? `
+                                            <div class="grid grid-cols-3 gap-4">
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">Cidade</label>
+                                                    <p class="text-slate-800">${patient.cidade || '-'}</p>
+                                                </div>
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">Estado</label>
+                                                    <p class="text-slate-800">${patient.estado || '-'}</p>
+                                                </div>
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">CEP</label>
+                                                    <p class="text-slate-800">${patient.cep || '-'}</p>
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+
+                                <!-- Responsável -->
+                                ${patient.nome_responsavel ? `
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                            <i data-lucide="users" class="w-5 h-5 text-purple-500"></i>
+                                            Responsável
+                                        </h3>
+                                        <div class="space-y-3">
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Nome do Responsável</label>
+                                                <p class="text-slate-800">${patient.nome_responsavel}</p>
+                                            </div>
+                                            ${patient.contato_responsavel ? `
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">Contato</label>
+                                                    <p class="text-slate-800">${patient.contato_responsavel}</p>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Informações Médicas e Terapêuticas -->
+                            <div class="space-y-6">
+                                <!-- Diagnóstico -->
+                                ${patient.diagnostico_principal ? `
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                            <i data-lucide="stethoscope" class="w-5 h-5 text-red-500"></i>
+                                            Diagnóstico
+                                        </h3>
+                                        <div class="space-y-3">
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Diagnóstico Principal</label>
+                                                <p class="text-slate-800">${patient.diagnostico_principal}</p>
+                                            </div>
+                                            ${patient.diagnosticos_secundarios && patient.diagnosticos_secundarios.length > 0 ? `
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">Diagnósticos Secundários</label>
+                                                    <div class="flex flex-wrap gap-1 mt-1">
+                                                        ${patient.diagnosticos_secundarios.map(diag => `
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                ${diag}
+                                                            </span>
+                                                        `).join('')}
+                                                    </div>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <!-- Equipe Terapêutica -->
+                                <div>
+                                    <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                        <i data-lucide="user-cog" class="w-5 h-5 text-teal-500"></i>
+                                        Equipe Terapêutica
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-500">Terapeuta Responsável</label>
+                                            <p class="text-slate-800">${terapeuta ? terapeuta.nome : 'Não atribuído'}</p>
+                                        </div>
+                                        ${patient.tipo_terapia ? `
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Tipo de Terapia</label>
+                                                <p class="text-slate-800">${patient.tipo_terapia}</p>
+                                            </div>
+                                        ` : ''}
+                                        ${patient.frequencia_recomendada ? `
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Frequência Recomendada</label>
+                                                <p class="text-slate-800">${patient.frequencia_recomendada}</p>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+
+                                <!-- Informações Clínicas -->
+                                ${patient.medicacoes && patient.medicacoes.length > 0 || patient.alergias && patient.alergias.length > 0 ? `
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                            <i data-lucide="pill" class="w-5 h-5 text-orange-500"></i>
+                                            Informações Clínicas
+                                        </h3>
+                                        <div class="space-y-3">
+                                            ${patient.medicacoes && patient.medicacoes.length > 0 ? `
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">Medicações</label>
+                                                    <div class="flex flex-wrap gap-1 mt-1">
+                                                        ${patient.medicacoes.map(med => `
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                                                ${med}
+                                                            </span>
+                                                        `).join('')}
+                                                    </div>
+                                                </div>
+                                            ` : ''}
+                                            ${patient.alergias && patient.alergias.length > 0 ? `
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">Alergias</label>
+                                                    <div class="flex flex-wrap gap-1 mt-1">
+                                                        ${patient.alergias.map(alergia => `
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                <i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i>
+                                                                ${alergia}
+                                                            </span>
+                                                        `).join('')}
+                                                    </div>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <!-- Plano de Saúde -->
+                                ${patient.plano_saude ? `
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                            <i data-lucide="credit-card" class="w-5 h-5 text-blue-500"></i>
+                                            Plano de Saúde
+                                        </h3>
+                                        <div class="space-y-3">
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Plano</label>
+                                                <p class="text-slate-800">${patient.plano_saude}</p>
+                                            </div>
+                                            ${patient.numero_carteirinha ? `
+                                                <div>
+                                                    <label class="text-sm font-medium text-slate-500">Número da Carteirinha</label>
+                                                    <p class="text-slate-800 font-mono">${patient.numero_carteirinha}</p>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+
+                                <!-- Outras Informações -->
+                                ${patient.escola ? `
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                            <i data-lucide="graduation-cap" class="w-5 h-5 text-indigo-500"></i>
+                                            Educação
+                                        </h3>
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-500">Escola</label>
+                                            <p class="text-slate-800">${patient.escola}</p>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${patient.historico_medico ? `
+                            <div class="mt-6 pt-6 border-t border-slate-200">
+                                <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                    <i data-lucide="file-text" class="w-5 h-5 text-slate-500"></i>
+                                    Histórico Médico
+                                </h3>
+                                <div class="bg-slate-50 rounded-lg p-4">
+                                    <p class="text-slate-700 leading-relaxed">${patient.historico_medico}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Informações do Sistema -->
+                        <div class="mt-6 pt-6 border-t border-slate-200">
+                            <div class="flex items-center justify-between text-sm text-slate-500">
+                                <span>Cadastrado em: ${new Date(patient.created_at).toLocaleDateString('pt-BR')}</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${patient.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    <div class="w-1.5 h-1.5 rounded-full ${patient.status === 'ativo' ? 'bg-green-400' : 'bg-red-400'} mr-1.5"></div>
+                                    ${patient.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
+                        ${isSupervisor ? `
+                            <button onclick="App.editPatient(${patient.id}); Utils.closeModal();" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors">
+                                <i data-lucide="edit" class="w-4 h-4 inline mr-2"></i>
+                                Editar Paciente
+                            </button>
+                        ` : ''}
+                        <button onclick="App.schedulePatient(${patient.id}); Utils.closeModal();" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors">
+                            <i data-lucide="calendar-plus" class="w-4 h-4 inline mr-2"></i>
+                            Agendar Sessão
+                        </button>
+                        <button onclick="Utils.closeModal()" class="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg transition-colors">
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        Utils.setupModalEvents();
+        lucide.createIcons();
     }
 
     schedulePatient(patientId) {
@@ -1925,9 +2258,8 @@ class Application {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 ${['segunda', 'terca', 'quarta', 'quinta', 'sexta'].map(dia => {
                                     const horarios = therapist.horario_trabalho && therapist.horario_trabalho[dia];
-                                    const isActive = horarios && horarios.length >= 2;
-                                    const inicio = isActive ? horarios[0] : '';
-                                    const fim = isActive ? horarios[1] : '';
+                                    const isActive = horarios && horarios.includes('-');
+                                    const [inicio, fim] = isActive ? horarios.split('-') : ['', ''];
                                     
                                     return `
                                         <div class="flex items-center gap-3">
@@ -2057,7 +2389,7 @@ class Application {
                 const inicio = formData.get(`edit_inicio_${dia}`);
                 const fim = formData.get(`edit_fim_${dia}`);
                 if (inicio && fim) {
-                    horarioTrabalho[dia] = [inicio, fim];
+                    horarioTrabalho[dia] = `${inicio}-${fim}`;
                 }
             }
         });
@@ -2735,6 +3067,132 @@ class Application {
         } catch (error) {
             console.error('Erro ao cancelar disponibilidade:', error);
             Utils.showToast('Erro ao cancelar disponibilidade', 'error');
+        }
+    }
+
+    async renderPerfilView() {
+        try {
+            // Buscar dados do perfil
+            const profile = await apiClient.getProfile();
+            
+            const user = profile.user;
+            const role = user.role;
+            const isSupervisor = role === 'supervisor';
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Meu Perfil</h3>
+                        <p class="text-slate-500 text-sm">Visualize e gerencie suas informações pessoais</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Avatar e Info Básica -->
+                            <div class="text-center">
+                                <div class="inline-block relative mb-4">
+                                    <img src="${user.avatar || 'https://placehold.co/120x120/94a3b8/ffffff?text=' + (isSupervisor ? 'SU' : 'TE')}" 
+                                         alt="Avatar" 
+                                         class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg mx-auto">
+                                    <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-${isSupervisor ? 'cyan' : 'teal'}-500 rounded-full flex items-center justify-center">
+                                        <i data-lucide="${isSupervisor ? 'user-cog' : 'user'}" class="w-3 h-3 text-white"></i>
+                                    </div>
+                                </div>
+                                <h4 class="text-lg font-semibold text-slate-800 mb-1">${user.nome}</h4>
+                                <p class="text-sm text-${isSupervisor ? 'cyan' : 'teal'}-600 font-medium mb-2">
+                                    ${isSupervisor ? 'Supervisor' : 'Terapeuta'}
+                                </p>
+                                <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    <div class="w-1.5 h-1.5 rounded-full ${user.status === 'ativo' ? 'bg-green-400' : 'bg-red-400'} mr-1.5"></div>
+                                    ${user.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                                </div>
+                            </div>
+
+                            <!-- Informações Pessoais -->
+                            <div class="lg:col-span-2">
+                                <h5 class="font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200">
+                                    Informações Pessoais
+                                </h5>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-sm font-medium text-slate-500">Nome Completo</label>
+                                        <p class="text-slate-800 font-medium">${user.nome}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-sm font-medium text-slate-500">E-mail</label>
+                                        <p class="text-slate-800">${user.email}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-sm font-medium text-slate-500">Telefone</label>
+                                        <p class="text-slate-800">${user.telefone || 'Não informado'}</p>
+                                    </div>
+                                    <div>
+                                        <label class="text-sm font-medium text-slate-500">Status</label>
+                                        <p class="text-slate-800 capitalize">${user.status}</p>
+                                    </div>
+                                    ${!isSupervisor ? `
+                                        <div>
+                                            <label class="text-sm font-medium text-slate-500">CRF</label>
+                                            <p class="text-slate-800">${user.crf || 'Não informado'}</p>
+                                        </div>
+                                        ${user.especialidades && user.especialidades.length > 0 ? `
+                                            <div>
+                                                <label class="text-sm font-medium text-slate-500">Especialidades</label>
+                                                <div class="flex flex-wrap gap-1 mt-1">
+                                                    ${user.especialidades.map(esp => `
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                                                            ${esp}
+                                                        </span>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        ` : ''}
+                                    ` : ''}
+                                </div>
+                                
+                                ${!isSupervisor && user.horario_trabalho ? `
+                                    <h5 class="font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200 mt-6">
+                                        Horário de Trabalho
+                                    </h5>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        ${Object.entries(user.horario_trabalho).map(([dia, horario]) => `
+                                            <div class="flex justify-between items-center p-2 bg-slate-50 rounded">
+                                                <span class="text-sm font-medium text-slate-600 capitalize">${dia}</span>
+                                                <span class="text-sm text-slate-800">${horario}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+
+                                <div class="mt-6 pt-4 border-t border-slate-200">
+                                    <div class="flex items-center justify-between text-sm text-slate-500">
+                                        <span>Conta criada em:</span>
+                                        <span>${new Date(user.created_at).toLocaleDateString('pt-BR')}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm text-slate-500 mt-1">
+                                        <span>Última atualização:</span>
+                                        <span>${new Date(user.updated_at).toLocaleDateString('pt-BR')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+        } catch (error) {
+            console.error('Erro ao carregar perfil:', error);
+            return `
+                <div class="card">
+                    <div class="card-body text-center py-12">
+                        <i data-lucide="alert-circle" class="w-12 h-12 text-red-500 mx-auto mb-4"></i>
+                        <h3 class="text-lg font-semibold text-slate-800 mb-2">Erro ao carregar perfil</h3>
+                        <p class="text-slate-500 mb-4">Não foi possível carregar as informações do seu perfil.</p>
+                        <button onclick="App.navigateTo('perfil')" class="btn-primary">
+                            Tentar novamente
+                        </button>
+                    </div>
+                </div>
+            `;
         }
     }
 }

@@ -77,6 +77,10 @@ class ApiClient {
     return await this.request('/auth/verify');
   }
 
+  async getProfile() {
+    return await this.request('/auth/profile');
+  }
+
   // Pacientes endpoints
   async getPacientes() {
     return await this.request('/pacientes');

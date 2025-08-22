@@ -259,6 +259,9 @@ class Utils {
     }
 
     static getInitials(name) {
+        if (!name || typeof name !== 'string') {
+            return 'NN';
+        }
         return name
             .split(' ')
             .map(word => word.charAt(0))

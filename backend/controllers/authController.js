@@ -110,6 +110,49 @@ const verifyToken = async (req, res) => {
   }
 };
 
+// Obter perfil do usuário logado
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Buscar dados completos do usuário
+    const table = userRole === 'supervisor' ? 'supervisores' : 'terapeutas';
+    let query = `SELECT id, nome, email, telefone, avatar, status, created_at, updated_at FROM ${table} WHERE id = $1`;
+    
+    // Para terapeutas, incluir campos específicos
+    if (userRole === 'terapeuta') {
+      query = `SELECT id, nome, email, telefone, crf, especialidades, avatar, horario_trabalho, status, created_at, updated_at FROM ${table} WHERE id = $1`;
+    }
+
+    const { rows } = await pool.query(query, [userId]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        error: 'Usuário não encontrado',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    const user = rows[0];
+    
+    res.json({
+      user: {
+        ...user,
+        role: userRole,
+        senha_hash: undefined // Nunca retornar hash da senha
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro ao buscar perfil:', error);
+    res.status(500).json({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR'
+    });
+  }
+};
+
 // Trocar senha (funcionalidade futura)
 const changePassword = async (req, res) => {
   try {
@@ -165,5 +208,6 @@ const changePassword = async (req, res) => {
 module.exports = {
   login,
   verifyToken,
-  changePassword
+  changePassword,
+  getProfile
 };
